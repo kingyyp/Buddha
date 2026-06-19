@@ -190,41 +190,53 @@
     let target = 108;
     let isInfinite = false;
 
+    // 💡 優化：專為 iOS 解鎖 AudioContext
     function initAudio() {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
         }
     }
 
     // 1. 錄音邏輯
     recordBtn.addEventListener('click', async () => {
-        initAudio();
+        initAudio(); // 藉由點擊事件直接解鎖音訊
         
         if (!isRecording) {
-            // 開始錄音
             audioChunks = [];
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+                
+                // 💡 優化：檢查 iOS 支援的錄音格式 (iOS Safari 通常支援 audio/mp4 或 audio/webm)
+                let options = {};
+                if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    options = { mimeType: 'audio/mp4' };
+                } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    options = { mimeType: 'audio/webm' };
+                }
+
+                mediaRecorder = new MediaRecorder(stream, options);
                 
                 mediaRecorder.ondataavailable = event => {
-                    audioChunks.push(event.data);
+                    if (event.data.size > 0) audioChunks.push(event.data);
                 };
 
                 mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
                     const arrayBuffer = await audioBlob.arrayBuffer();
                     
-                    // 解碼錄音檔成 AudioBuffer
+                    // 解碼錄音檔
                     audioContext.decodeAudioData(arrayBuffer, (buffer) => {
                         audioBuffer = buffer;
                         recordStatus.textContent = "✅ 錄音成功！已就緒";
                         startBtn.disabled = false;
                     }, (err) => {
-                        recordStatus.textContent = "❌ 錄音解碼失敗，請重試";
+                        console.error(err);
+                        recordStatus.textContent = "❌ 音訊解碼失敗，請再錄一次";
                     });
                     
-                    // 關閉麥克風收音，慳電安全
                     stream.getTracks().forEach(track => track.stop());
                 };
 
@@ -235,11 +247,10 @@
                 recordStatus.textContent = "🎙️ 正在錄音...請讀出佛號...";
                 startBtn.disabled = true;
             } catch (err) {
-                alert("無法開啟麥克風，請檢查瀏覽器權限設定。");
+                alert("無法開啟麥克風，請檢查 Safari 權限。");
                 console.error(err);
             }
         } else {
-            // 停止錄音
             mediaRecorder.stop();
             isRecording = false;
             recordBtn.textContent = "🔴 重新錄製佛號";
@@ -255,7 +266,7 @@
         });
     });
 
-    // 2. 完美無縫播放邏輯
+    // 2. 播放邏輯
     function playNext() {
         if (!isPlaying) return;
 
@@ -273,7 +284,7 @@
                 count++;
                 currentCountDisplay.textContent = count;
                 updateProgress();
-                playNext(); // 連續播放
+                playNext();
             }
         };
 
@@ -291,8 +302,7 @@
     // 開始
     startBtn.addEventListener('click', () => {
         if (!audioBuffer) return;
-        initAudio();
-        if (audioContext.state === 'suspended') audioContext.resume();
+        initAudio(); // 確保開始時音訊已解鎖
 
         isPlaying = true;
         count = 0;
