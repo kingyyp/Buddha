@@ -122,6 +122,8 @@
 <div class="container">
     <h1>📿 隨心現場錄音唸佛</h1>
 
+    <audio id="nativeAudio" playsinline style="display: none;"></audio>
+
     <div class="section" style="text-align: center;">
         <label>第一步：現場錄製一句佛號</label>
         <button id="recordBtn" class="btn-record">🔴 開始錄音 (講一句)</button>
@@ -164,7 +166,6 @@
 </div>
 
 <script>
-    // DOM 元素
     const recordBtn = document.getElementById('recordBtn');
     const recordStatus = document.getElementById('recordStatus');
     const modeRadios = document.getElementsByName('mode');
@@ -176,13 +177,11 @@
     const stopBtn = document.getElementById('stopBtn');
     const historyList = document.getElementById('historyList');
     const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const nativeAudio = document.getElementById('nativeAudio');
 
-    // 核心變數
-    let audioContext = null;
-    let audioBuffer = null;
-    let audioSource = null;
     let mediaRecorder = null;
     let audioChunks = [];
+    let audioUrl = null;
     
     let isRecording = false;
     let isPlaying = false;
@@ -190,30 +189,16 @@
     let target = 108;
     let isInfinite = false;
 
-    // 💡 優化：專為 iOS 解鎖 AudioContext
-    function initAudio() {
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-    }
-
-    // 1. 錄音邏輯
+    // 1. 錄音邏輯 (改用 iOS 絕對支援的標準 Blob URL 模式)
     recordBtn.addEventListener('click', async () => {
-        initAudio(); // 藉由點擊事件直接解鎖音訊
-        
         if (!isRecording) {
             audioChunks = [];
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 
-                // 💡 優化：檢查 iOS 支援的錄音格式 (iOS Safari 通常支援 audio/mp4 或 audio/webm)
-                let options = {};
-                if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                    options = { mimeType: 'audio/mp4' };
-                } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                // 強制採用 iOS 錄音標準
+                let options = { mimeType: 'audio/mp4' };
+                if (!MediaRecorder.isTypeSupported('audio/mp4') && MediaRecorder.isTypeSupported('audio/webm')) {
                     options = { mimeType: 'audio/webm' };
                 }
 
@@ -223,19 +208,19 @@
                     if (event.data.size > 0) audioChunks.push(event.data);
                 };
 
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-                    const arrayBuffer = await audioBlob.arrayBuffer();
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: options.mimeType });
                     
-                    // 解碼錄音檔
-                    audioContext.decodeAudioData(arrayBuffer, (buffer) => {
-                        audioBuffer = buffer;
-                        recordStatus.textContent = "✅ 錄音成功！已就緒";
-                        startBtn.disabled = false;
-                    }, (err) => {
-                        console.error(err);
-                        recordStatus.textContent = "❌ 音訊解碼失敗，請再錄一次";
-                    });
+                    // 釋放舊的 URL 慳記憶體
+                    if (audioUrl) URL.revokeObjectURL(audioUrl);
+                    
+                    // 直接將錄音轉化成 iPhone 原生播放器可以直接播放的連結
+                    audioUrl = URL.createObjectURL(audioBlob);
+                    nativeAudio.src = audioUrl;
+                    nativeAudio.load();
+                    
+                    recordStatus.textContent = "✅ 錄音成功！已就緒";
+                    startBtn.disabled = false;
                     
                     stream.getTracks().forEach(track => track.stop());
                 };
@@ -258,7 +243,6 @@
         }
     });
 
-    // 模式切換
     modeRadios.forEach(radio => {
         radio.addEventListener('change', (e) => {
             isInfinite = (e.target.value === 'infinite');
@@ -266,30 +250,27 @@
         });
     });
 
-    // 2. 播放邏輯
-    function playNext() {
+    // 2. 播放邏輯 (改用 HTML5 Audio 事件驅動，避開 iOS Web Audio API Bug)
+    nativeAudio.addEventListener('ended', () => {
         if (!isPlaying) return;
+
+        count++;
+        currentCountDisplay.textContent = count;
+        updateProgress();
 
         if (!isInfinite && count >= target) {
             finishSession();
             return;
         }
 
-        audioSource = audioContext.createBufferSource();
-        audioSource.buffer = audioBuffer;
-        audioSource.connect(audioContext.destination);
-
-        audioSource.onended = function() {
+        // 毫秒級無縫重播
+        setTimeout(() => {
             if (isPlaying) {
-                count++;
-                currentCountDisplay.textContent = count;
-                updateProgress();
-                playNext();
+                nativeAudio.currentTime = 0;
+                nativeAudio.play().catch(e => console.log("播放被阻擋", e));
             }
-        };
-
-        audioSource.start(0);
-    }
+        }, 10);
+    });
 
     function updateProgress() {
         if (isInfinite) {
@@ -301,8 +282,7 @@
 
     // 開始
     startBtn.addEventListener('click', () => {
-        if (!audioBuffer) return;
-        initAudio(); // 確保開始時音訊已解鎖
+        if (!audioUrl) return;
 
         isPlaying = true;
         count = 0;
@@ -315,7 +295,15 @@
         stopBtn.disabled = false;
         recordBtn.disabled = true;
 
-        playNext();
+        // iOS 要求必須由用戶點擊直接觸發 play()
+        nativeAudio.currentTime = 0;
+        nativeAudio.play().then(() => {
+            // 💡 雙重保險：強制調整音量
+            nativeAudio.volume = 1.0;
+        }).catch(err => {
+            alert("播放失敗，請確保已允許網頁播放音訊。");
+            stopAudio();
+        });
     });
 
     // 停止
@@ -327,9 +315,7 @@
 
     function stopAudio() {
         isPlaying = false;
-        if (audioSource) {
-            try { audioSource.stop(); } catch(e) {}
-        }
+        nativeAudio.pause();
         startBtn.disabled = false;
         stopBtn.disabled = true;
         recordBtn.disabled = false;
