@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>現場錄音 唸佛助手</title>
+    <style>
+        :root {
+            --primary-color: #d4af37;
+            --bg-color: #fcf8f2;
+            --text-color: #5c3a21;
+        }
+        body {
+            font-family: 'PingFang HK', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            color: #b8860b;
+            margin-bottom: 25px;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #faf6f0;
+            border-radius: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .counter-display {
+            font-size: 48px;
+            text-align: center;
+            font-weight: bold;
+            color: #b8860b;
+            margin: 15px 0;
+        }
+        .target-display {
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+        .btn-record { background-color: #d9534f; color: white; }
+        .btn-record.recording { background-color: #333; animation: pulse 1.5s infinite; }
+        .btn-start { background-color: #b8860b; color: white; }
+        .btn-start:hover { background-color: #966f0a; }
+        .btn-stop { background-color: #555; color: white; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        button:disabled { background-color: #ccc !important; cursor: not-allowed; color: #888; }
+        
+        .history-list {
+            max-height: 120px;
+            overflow-y: auto;
+            padding-left: 20px;
+        }
+        .history-list li {
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        .status-tag {
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📿 隨心現場錄音唸佛</h1>
+
+    <div class="section" style="text-align: center;">
+        <label>第一步：現場錄製一句佛號</label>
+        <button id="recordBtn" class="btn-record">🔴 開始錄音 (講一句)</button>
+        <div id="recordStatus" class="status-tag">尚未錄音</div>
+    </div>
+
+    <div class="section">
+        <label>第二步：選擇模式</label>
+        <div class="radio-group">
+            <label><input type="radio" name="mode" value="target" checked> 設定次數</label>
+            <label><input type="radio" name="mode" value="infinite"> 無限循環</label>
+        </div>
+        
+        <div id="targetCountDiv">
+            <select id="targetCount">
+                <option value="10">10 次</option>
+                <option value="21">21 次</option>
+                <option value="49">49 次</option>
+                <option value="108" selected>108 次</option>
+                <option value="1000">1000 次</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="counter-display" id="currentCount">0</div>
+        <div class="target-display" id="progressText">準備就緒</div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-start" id="startBtn" disabled>開始連播</button>
+        <button class="btn-stop" id="stopBtn" disabled>暫停/停止</button>
+    </div>
+
+    <div class="section" style="margin-top: 20px;">
+        <label>📊 功德統計紀錄</label>
+        <ul class="history-list" id="historyList"></ul>
+        <button id="clearHistoryBtn" style="padding: 3px 8px; font-size: 11px; margin-top: 5px; width: auto; flex: none; background: #eee; color: #333;">清除紀錄</button>
+    </div>
+</div>
+
+<script>
+    // DOM 元素
+    const recordBtn = document.getElementById('recordBtn');
+    const recordStatus = document.getElementById('recordStatus');
+    const modeRadios = document.getElementsByName('mode');
+    const targetCountDiv = document.getElementById('targetCountDiv');
+    const targetCountSelect = document.getElementById('targetCount');
+    const currentCountDisplay = document.getElementById('currentCount');
+    const progressText = document.getElementById('progressText');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const historyList = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+    // 核心變數
+    let audioContext = null;
+    let audioBuffer = null;
+    let audioSource = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    
+    let isRecording = false;
+    let isPlaying = false;
+    let count = 0;
+    let target = 108;
+    let isInfinite = false;
+
+    function initAudio() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    // 1. 錄音邏輯
+    recordBtn.addEventListener('click', async () => {
+        initAudio();
+        
+        if (!isRecording) {
+            // 開始錄音
+            audioChunks = [];
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    const arrayBuffer = await audioBlob.arrayBuffer();
+                    
+                    // 解碼錄音檔成 AudioBuffer
+                    audioContext.decodeAudioData(arrayBuffer, (buffer) => {
+                        audioBuffer = buffer;
+                        recordStatus.textContent = "✅ 錄音成功！已就緒";
+                        startBtn.disabled = false;
+                    }, (err) => {
+                        recordStatus.textContent = "❌ 錄音解碼失敗，請重試";
+                    });
+                    
+                    // 關閉麥克風收音，慳電安全
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.textContent = "⏹️ 錄完再撳一下 (停止)";
+                recordBtn.classList.add('recording');
+                recordStatus.textContent = "🎙️ 正在錄音...請讀出佛號...";
+                startBtn.disabled = true;
+            } catch (err) {
+                alert("無法開啟麥克風，請檢查瀏覽器權限設定。");
+                console.error(err);
+            }
+        } else {
+            // 停止錄音
+            mediaRecorder.stop();
+            isRecording = false;
+            recordBtn.textContent = "🔴 重新錄製佛號";
+            recordBtn.classList.remove('recording');
+        }
+    });
+
+    // 模式切換
+    modeRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            isInfinite = (e.target.value === 'infinite');
+            targetCountDiv.style.display = isInfinite ? 'none' : 'block';
+        });
+    });
+
+    // 2. 完美無縫播放邏輯
+    function playNext() {
+        if (!isPlaying) return;
+
+        if (!isInfinite && count >= target) {
+            finishSession();
+            return;
+        }
+
+        audioSource = audioContext.createBufferSource();
+        audioSource.buffer = audioBuffer;
+        audioSource.connect(audioContext.destination);
+
+        audioSource.onended = function() {
+            if (isPlaying) {
+                count++;
+                currentCountDisplay.textContent = count;
+                updateProgress();
+                playNext(); // 連續播放
+            }
+        };
+
+        audioSource.start(0);
+    }
+
+    function updateProgress() {
+        if (isInfinite) {
+            progressText.textContent = `無限模式中...`;
+        } else {
+            progressText.textContent = `目標：${target} 次 / 進度：${Math.round((count/target)*100)}%`;
+        }
+    }
+
+    // 開始
+    startBtn.addEventListener('click', () => {
+        if (!audioBuffer) return;
+        initAudio();
+        if (audioContext.state === 'suspended') audioContext.resume();
+
+        isPlaying = true;
+        count = 0;
+        target = parseInt(targetCountSelect.value);
+
+        currentCountDisplay.textContent = count;
+        updateProgress();
+
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        recordBtn.disabled = true;
+
+        playNext();
+    });
+
+    // 停止
+    stopBtn.addEventListener('click', () => {
+        stopAudio();
+        progressText.textContent = "已手動停止";
+        saveHistory(count, false);
+    });
+
+    function stopAudio() {
+        isPlaying = false;
+        if (audioSource) {
+            try { audioSource.stop(); } catch(e) {}
+        }
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        recordBtn.disabled = false;
+    }
+
+    function finishSession() {
+        stopAudio();
+        progressText.textContent = "🎉 功德圓滿！";
+        saveHistory(count, true);
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+
+    // 3. 儲存紀錄
+    function saveHistory(finalCount, isCompleted) {
+        if (finalCount === 0) return;
+        const history = JSON.parse(localStorage.getItem('buddha_rec_history') || '[]');
+        const log = {
+            date: new Date().toLocaleString('zh-HK'),
+            count: finalCount,
+            status: isCompleted ? "圓滿" : "中途停止"
+        };
+        history.unshift(log);
+        localStorage.setItem('buddha_rec_history', JSON.stringify(history));
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const history = JSON.parse(localStorage.getItem('buddha_rec_history') || '[]');
+        historyList.innerHTML = history.map(item => `
+            <li>[${item.date}] 唸誦 <b>${item.count}</b> 次 (${item.status})</li>
+        `).join('');
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+        if(confirm('確定要清除所有紀錄？')) {
+            localStorage.removeItem('buddha_rec_history');
+            renderHistory();
+        }
+    });
+
+    renderHistory();
+</script>
+
+</body>
+</html>
