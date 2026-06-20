@@ -80,7 +80,14 @@
 
         /* 輸入與選單 */
         .input-group {
-            margin-bottom: 12px;
+            margin-bottom: 15px;
+        }
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+        .input-cell {
+            flex: 1;
         }
         label {
             display: block;
@@ -147,22 +154,35 @@
             100% { opacity: 1; }
         }
 
-        /* 迴向文顯示 */
-        .dedication-box {
+        /* 迴向文展示區 */
+        .dedication-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .dedication-item {
             background: #fff;
             padding: 15px;
             border-radius: 8px;
             border: 1px solid #ebdcb9;
-            font-size: 16px;
+            font-size: 15px;
             color: #444;
             text-align: justify;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
-        .dedication-box span.highlight {
+        .dedication-label {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            font-size: 14px;
+            border-bottom: 1px dashed #ebdcb9;
+            padding-bottom: 3px;
+        }
+        .dedication-item span.highlight {
             color: var(--accent-color);
             font-weight: bold;
             border-bottom: 1px solid var(--accent-color);
-            padding: 0 4px;
+            padding: 0 2px;
         }
 
         /* 歷史紀錄 */
@@ -183,7 +203,6 @@
 
     <audio id="nativeAudio" playsinline style="display: none;"></audio>
 
-    <!-- ① 開咒偈 -->
     <div class="section">
         <div class="section-title">① 開咒偈</div>
         <div class="gatha-text">稽首皈依蘇悉帝，</div>
@@ -192,9 +211,8 @@
         <div class="gatha-text">惟願慈悲垂加護。</div>
     </div>
 
-    <!-- ② 咒文內容 -->
     <div class="section">
-        <div class="section-title">② 準提咒文 (全咒與心咒)</div>
+        <div class="section-title">② 準提咒文</div>
         
         <div class="mantra-block">
             <div class="mantra-sanskrit">नमः सप्तानाम् सम्यक्सम्बुद्ध कोटिनाम् तद्यथा</div>
@@ -209,14 +227,12 @@
         </div>
     </div>
 
-    <!-- 錄音控制 -->
     <div class="section" style="background: #fff5f5; border-left-color: var(--accent-color);">
         <div class="section-title" style="color: var(--accent-color);">🎙️ 現場法音錄製</div>
         <button id="recordBtn" class="btn-record">🔴 開始錄製一句準提咒</button>
-        <div id="recordStatus" class="status-tag">尚未錄音 (可錄全咒或只錄心咒)</div>
+        <div id="recordStatus" class="status-tag">尚未錄音</div>
     </div>
 
-    <!-- 設定模式 -->
     <div class="section">
         <div class="section-title">⚙️ 修持設定</div>
         <div class="radio-group">
@@ -235,49 +251,56 @@
         </div>
     </div>
 
-    <!-- 計數顯示 -->
     <div class="section" style="background: #fff;">
         <div class="counter-display" id="currentCount">0</div>
         <div class="target-display" id="progressText">準備就緒</div>
     </div>
 
-    <!-- 播放按鈕 -->
     <div class="btn-group">
         <button class="btn-start" id="startBtn" disabled>開始持誦</button>
         <button class="btn-stop" id="stopBtn" disabled>暫停/停止</button>
     </div>
 
-    <!-- ③ 迴向文 -->
     <div class="section">
         <div class="section-title">③ 功德迴向文</div>
         
         <div class="input-group">
-            <label for="userName">修持信士姓名：</label>
-            <input type="text" id="userName" value="某某某" placeholder="請輸入您的姓名">
+            <div class="input-row">
+                <div class="input-cell">
+                    <label for="userName">修持信士姓名：</label>
+                    <input type="text" id="userName" value="某某某" placeholder="您的姓名">
+                </div>
+                <div class="input-cell">
+                    <label for="targetObject">祈福迴向對象：</label>
+                    <input type="text" id="targetObject" value="累劫冤親債主" placeholder="如：闔家大小/對象">
+                </div>
+            </div>
         </div>
 
-        <div class="input-group" id="targetObjectDiv" style="display:none;">
-            <label for="targetObject">祈福對象 (如家人/冤親債主)：</label>
-            <input type="text" id="targetObject" value="累劫冤親債主" placeholder="例如：累劫冤親債主 / 闔家大小">
-        </div>
-
-        <div class="input-group">
-            <label for="dedicationType">選擇迴向願文：</label>
-            <select id="dedicationType">
-                <option value="mirror">範例一：迴向準提鏡 (家門清淨)</option>
-                <option value="blessing">範例二：求消業增福 (冤親債主)</option>
-                <option value="academic">範例三：求學業金榜</option>
-                <option value="relationship">範例四：求人緣婚戀</option>
-                <option value="wealth">範例五：求財運圓滿</option>
-            </select>
-        </div>
-
-        <div class="dedication-box" id="dedicationDisplay">
-            <!-- 由 JavaScript 動態動態生成 -->
+        <div class="dedication-list">
+            <div class="dedication-item">
+                <div class="dedication-label">例一：迴向準提鏡 (護衛家門)</div>
+                <div id="log-mirror"></div>
+            </div>
+            <div class="dedication-item">
+                <div class="dedication-label">例二：求消業增福 (消除業障)</div>
+                <div id="log-blessing"></div>
+            </div>
+            <div class="dedication-item">
+                <div class="dedication-label">例三：求學業 (金榜提名)</div>
+                <div id="log-academic"></div>
+            </div>
+            <div class="dedication-item">
+                <div class="dedication-label">例四：求人緣、婚戀 (人天敬愛)</div>
+                <div id="log-relationship"></div>
+            </div>
+            <div class="dedication-item">
+                <div class="dedication-label">例五：求財運 (財源富足)</div>
+                <div id="log-wealth"></div>
+            </div>
         </div>
     </div>
 
-    <!-- 統計紀錄 -->
     <div class="section" style="border-left-color: #555;">
         <div class="section-title" style="color: #555;">📊 準提修持功德錄</div>
         <ul class="history-list" id="historyList"></ul>
@@ -302,9 +325,6 @@
     
     const userNameInput = document.getElementById('userName');
     const targetObjectInput = document.getElementById('targetObject');
-    const targetObjectDiv = document.getElementById('targetObjectDiv');
-    const dedicationTypeSelect = document.getElementById('dedicationType');
-    const dedicationDisplay = document.getElementById('dedicationDisplay');
 
     let mediaRecorder = null;
     let audioChunks = [];
@@ -316,39 +336,35 @@
     let target = 108;
     let isInfinite = false;
 
-    // 迴向文模板庫 (完全對應圖片例一至例四與準提鏡)
-    const dedicationTemplates = {
-        mirror: (name) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向這面準提鏡，願佛光常照，護衛家門，令內外清淨，災障消除，諸願圓成。`,
-        blessing: (name, target) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給<span class="highlight">${target}</span>，希望蒙佛加持、業障消除、福慧雙增、常遇善友、如意自在，諸願圓成。`,
-        academic: (name) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望智慧增長、思路靈敏、考試順利、金榜提名、心願達成。`,
-        relationship: (name) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望我可以人天敬愛、得善諸緣、婚戀順利，所求自在。`,
-        wealth: (name) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望財源富足、福德增長、運程順遂，所求圓滿。`
-    };
-
-    // 更新迴向文顯示
-    function updateDedication() {
+    // 更新並渲染所有的迴向文
+    function updateAllDedications() {
         const name = userNameInput.value || "某某某";
-        const targetObj = targetObjectInput.value || "對象";
-        const type = dedicationTypeSelect.value;
+        const targetObj = targetObjectInput.value || "累劫冤親債主";
         
-        if (type === 'blessing') {
-            targetObjectDiv.style.display = 'block';
-            dedicationDisplay.innerHTML = dedicationTemplates.blessing(name, targetObj);
-        } else {
-            targetObjectDiv.style.display = 'none';
-            dedicationDisplay.innerHTML = dedicationTemplates[type](name);
-        }
+        document.getElementById('log-mirror').innerHTML = 
+            `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向這面準提鏡，願佛光常照，護衛家門，令內外清淨，災障消除，諸願圓成。`;
+            
+        document.getElementById('log-blessing').innerHTML = 
+            `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給 <span class="highlight">${targetObj}</span>，希望蒙佛加持、業障消除、福慧雙增、常遇善友、如意自在，諸願圓成。`;
+            
+        document.getElementById('log-academic').innerHTML = 
+            `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望智慧增長、思路靈敏、考試順利、金榜提名、心願達成。`;
+            
+        document.getElementById('log-relationship').innerHTML = 
+            `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望我可以人天敬愛、得善諸緣、婚戀順利，所求自在。`;
+            
+        document.getElementById('log-wealth').innerHTML = 
+            `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望財源富足、福德增長、運程順遂，所求圓滿。`;
     }
 
-    // 監聽姓名與範例切換
-    userNameInput.addEventListener('input', updateDedication);
-    targetObjectInput.addEventListener('input', updateDedication);
-    dedicationTypeSelect.addEventListener('change', updateDedication);
+    // 監聽姓名與對象輸入
+    userNameInput.addEventListener('input', updateAllDedications);
+    targetObjectInput.addEventListener('input', updateAllDedications);
     
-    // 初始化迴向文
-    updateDedication();
+    // 初始化生成
+    updateAllDedications();
 
-    // 1. 錄音邏輯 (iOS 相容優化)
+    // 1. 錄音邏輯
     recordBtn.addEventListener('click', async () => {
         if (!isRecording) {
             audioChunks = [];
@@ -401,7 +417,7 @@
         });
     });
 
-    // 2. 播放與計數監聽 (無縫連播)
+    // 2. 播放與計數
     nativeAudio.addEventListener('ended', () => {
         if (!isPlaying) return;
 
@@ -430,7 +446,6 @@
         }
     }
 
-    // 開始連播
     startBtn.addEventListener('click', () => {
         if (!audioUrl) return;
 
@@ -454,7 +469,6 @@
         });
     });
 
-    // 暫停或停止
     stopBtn.addEventListener('click', () => {
         stopAudio();
         progressText.textContent = "修持手動暫停";
@@ -476,7 +490,7 @@
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
 
-    // 3. 本地儲存與紀錄排版
+    // 3. 歷史紀錄
     function saveHistory(finalCount, isCompleted) {
         if (finalCount === 0) return;
         const history = JSON.parse(localStorage.getItem('zhunti_rec_history') || '[]');
@@ -504,7 +518,6 @@
         }
     });
 
-    // 初始化歷史數據
     renderHistory();
 </script>
 
