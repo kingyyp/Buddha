@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>準提神咒 修持助手</title>
+    <style>
+        :root {
+            --primary-color: #b8860b;
+            --primary-light: #faf6f0;
+            --bg-color: #f5efe6;
+            --text-color: #3d2514;
+            --accent-color: #d9534f;
+        }
+        body {
+            font-family: 'PingFang HK', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e6dfd3;
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 24px;
+            letter-spacing: 2px;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: var(--primary-light);
+            border-radius: 10px;
+            border-left: 4px solid var(--primary-color);
+        }
+        .section-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* 儀軌經文排版 */
+        .gatha-text {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin: 8px 0;
+        }
+        
+        /* 梵漢咒文排版 */
+        .mantra-block {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px 0;
+            border-bottom: 1px dashed #e6dfd3;
+        }
+        .mantra-block:last-child { border-bottom: none; }
+        .mantra-sanskrit { font-size: 13px; color: #666; font-family: monospace; }
+        .mantra-roman { font-size: 14px; color: #8a6d3b; font-weight: bold; }
+        .mantra-chinese { font-size: 20px; font-weight: bold; color: #222; margin-top: 2px; letter-spacing: 2px; }
+
+        /* 輸入與選單 */
+        .input-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        /* 計數器 */
+        .counter-display {
+            font-size: 56px;
+            text-align: center;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .target-display {
+            text-align: center;
+            font-size: 14px;
+            color: #777;
+        }
+
+        /* 按鈕控制 */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+        .btn-record { background-color: var(--accent-color); color: white; width: 100%; }
+        .btn-record.recording { background-color: #333; animation: pulse 1.5s infinite; }
+        .btn-start { background-color: var(--primary-color); color: white; }
+        .btn-start:hover { background-color: #966f0a; }
+        .btn-stop { background-color: #555; color: white; }
+        button:disabled { background-color: #ccc !important; cursor: not-allowed; color: #888; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        /* 迴向文顯示 */
+        .dedication-box {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ebdcb9;
+            font-size: 16px;
+            color: #444;
+            text-align: justify;
+            letter-spacing: 1px;
+        }
+        .dedication-box span.highlight {
+            color: var(--accent-color);
+            font-weight: bold;
+            border-bottom: 1px solid var(--accent-color);
+            padding: 0 4px;
+        }
+
+        /* 歷史紀錄 */
+        .history-list {
+            max-height: 120px;
+            overflow-y: auto;
+            padding-left: 20px;
+            margin: 5px 0;
+        }
+        .history-list li { font-size: 13px; margin-bottom: 4px; }
+        .status-tag { font-size: 12px; color: #777; text-align: center; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📿 準提神咒 修持助手</h1>
+
+    <audio id="nativeAudio" playsinline style="display: none;"></audio>
+
+    <!-- ① 開咒偈 -->
+    <div class="section">
+        <div class="section-title">① 開咒偈</div>
+        <div class="gatha-text">稽首皈依蘇悉帝，</div>
+        <div class="gatha-text">頭面頂禮七俱胝，</div>
+        <div class="gatha-text">我今稱讚大準提，</div>
+        <div class="gatha-text">惟願慈悲垂加護。</div>
+    </div>
+
+    <!-- ② 咒文內容 -->
+    <div class="section">
+        <div class="section-title">② 準提咒文 (全咒與心咒)</div>
+        
+        <div class="mantra-block">
+            <div class="mantra-sanskrit">नमः सप्तानाम् सम्यक्सम्बुद्ध कोटिनाम् तद्यथा</div>
+            <div class="mantra-roman">namaḥ saptānām samyaksambuddha koṭīnām tadyathā</div>
+            <div class="mantra-chinese">南無 颯哆喃 三藐三勃陀 俱胝喃 怛姪他</div>
+        </div>
+        
+        <div class="mantra-block">
+            <div class="mantra-sanskrit">ॐ चले चुले चुन्दी स्वाहा</div>
+            <div class="mantra-roman">oṃ cale cule cundī svāhā</div>
+            <div class="mantra-chinese">唵 折隸 主隸 準提 娑婆訶</div>
+        </div>
+    </div>
+
+    <!-- 錄音控制 -->
+    <div class="section" style="background: #fff5f5; border-left-color: var(--accent-color);">
+        <div class="section-title" style="color: var(--accent-color);">🎙️ 現場法音錄製</div>
+        <button id="recordBtn" class="btn-record">🔴 開始錄製一句準提咒</button>
+        <div id="recordStatus" class="status-tag">尚未錄音 (可錄全咒或只錄心咒)</div>
+    </div>
+
+    <!-- 設定模式 -->
+    <div class="section">
+        <div class="section-title">⚙️ 修持設定</div>
+        <div class="radio-group">
+            <label><input type="radio" name="mode" value="target" checked> 設定計數</label>
+            <label><input type="radio" name="mode" value="infinite"> 無限循環</label>
+        </div>
+        
+        <div id="targetCountDiv" class="input-group">
+            <select id="targetCount">
+                <option value="10">10 次</option>
+                <option value="21">21 次</option>
+                <option value="49">49 次</option>
+                <option value="108" selected>108 次</option>
+                <option value="1000">1000 次</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 計數顯示 -->
+    <div class="section" style="background: #fff;">
+        <div class="counter-display" id="currentCount">0</div>
+        <div class="target-display" id="progressText">準備就緒</div>
+    </div>
+
+    <!-- 播放按鈕 -->
+    <div class="btn-group">
+        <button class="btn-start" id="startBtn" disabled>開始持誦</button>
+        <button class="btn-stop" id="stopBtn" disabled>暫停/停止</button>
+    </div>
+
+    <!-- ③ 迴向文 -->
+    <div class="section">
+        <div class="section-title">③ 功德迴向文</div>
+        
+        <div class="input-group">
+            <label for="userName">修持信士姓名：</label>
+            <input type="text" id="userName" value="某某某" placeholder="請輸入您的姓名">
+        </div>
+
+        <div class="input-group" id="targetObjectDiv" style="display:none;">
+            <label for="targetObject">祈福對象 (如家人/冤親債主)：</label>
+            <input type="text" id="targetObject" value="累劫冤親債主" placeholder="例如：累劫冤親債主 / 闔家大小">
+        </div>
+
+        <div class="input-group">
+            <label for="dedicationType">選擇迴向願文：</label>
+            <select id="dedicationType">
+                <option value="mirror">範例一：迴向準提鏡 (家門清淨)</option>
+                <option value="blessing">範例二：求消業增福 (冤親債主)</option>
+                <option value="academic">範例三：求學業金榜</option>
+                <option value="relationship">範例四：求人緣婚戀</option>
+                <option value="wealth">範例五：求財運圓滿</option>
+            </select>
+        </div>
+
+        <div class="dedication-box" id="dedicationDisplay">
+            <!-- 由 JavaScript 動態動態生成 -->
+        </div>
+    </div>
+
+    <!-- 統計紀錄 -->
+    <div class="section" style="border-left-color: #555;">
+        <div class="section-title" style="color: #555;">📊 準提修持功德錄</div>
+        <ul class="history-list" id="historyList"></ul>
+        <button id="clearHistoryBtn" style="padding: 4px 10px; font-size: 11px; width: auto; background: #eee; color: #333;">清除歷史紀錄</button>
+    </div>
+</div>
+
+<script>
+    // 元素獲取
+    const recordBtn = document.getElementById('recordBtn');
+    const recordStatus = document.getElementById('recordStatus');
+    const modeRadios = document.getElementsByName('mode');
+    const targetCountDiv = document.getElementById('targetCountDiv');
+    const targetCountSelect = document.getElementById('targetCount');
+    const currentCountDisplay = document.getElementById('currentCount');
+    const progressText = document.getElementById('progressText');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const historyList = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const nativeAudio = document.getElementById('nativeAudio');
+    
+    const userNameInput = document.getElementById('userName');
+    const targetObjectInput = document.getElementById('targetObject');
+    const targetObjectDiv = document.getElementById('targetObjectDiv');
+    const dedicationTypeSelect = document.getElementById('dedicationType');
+    const dedicationDisplay = document.getElementById('dedicationDisplay');
+
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioUrl = null;
+    
+    let isRecording = false;
+    let isPlaying = false;
+    let count = 0;
+    let target = 108;
+    let isInfinite = false;
+
+    // 迴向文模板庫 (完全對應圖片例一至例四與準提鏡)
+    const dedicationTemplates = {
+        mirror: (name) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向這面準提鏡，願佛光常照，護衛家門，令內外清淨，災障消除，諸願圓成。`,
+        blessing: (name, target) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給<span class="highlight">${target}</span>，希望蒙佛加持、業障消除、福慧雙增、常遇善友、如意自在，諸願圓成。`,
+        academic: (name) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望智慧增長、思路靈敏、考試順利、金榜提名、心願達成。`,
+        relationship: (name) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望我可以人天敬愛、得善諸緣、婚戀順利，所求自在。`,
+        wealth: (name) => `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望財源富足、福德增長、運程順遂，所求圓滿。`
+    };
+
+    // 更新迴向文顯示
+    function updateDedication() {
+        const name = userNameInput.value || "某某某";
+        const targetObj = targetObjectInput.value || "對象";
+        const type = dedicationTypeSelect.value;
+        
+        if (type === 'blessing') {
+            targetObjectDiv.style.display = 'block';
+            dedicationDisplay.innerHTML = dedicationTemplates.blessing(name, targetObj);
+        } else {
+            targetObjectDiv.style.display = 'none';
+            dedicationDisplay.innerHTML = dedicationTemplates[type](name);
+        }
+    }
+
+    // 監聽姓名與範例切換
+    userNameInput.addEventListener('input', updateDedication);
+    targetObjectInput.addEventListener('input', updateDedication);
+    dedicationTypeSelect.addEventListener('change', updateDedication);
+    
+    // 初始化迴向文
+    updateDedication();
+
+    // 1. 錄音邏輯 (iOS 相容優化)
+    recordBtn.addEventListener('click', async () => {
+        if (!isRecording) {
+            audioChunks = [];
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                let options = { mimeType: 'audio/mp4' };
+                if (!MediaRecorder.isTypeSupported('audio/mp4') && MediaRecorder.isTypeSupported('audio/webm')) {
+                    options = { mimeType: 'audio/webm' };
+                }
+
+                mediaRecorder = new MediaRecorder(stream, options);
+                mediaRecorder.ondataavailable = event => { if (event.data.size > 0) audioChunks.push(event.data); };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: options.mimeType });
+                    if (audioUrl) URL.revokeObjectURL(audioUrl);
+                    
+                    audioUrl = URL.createObjectURL(audioBlob);
+                    nativeAudio.src = audioUrl;
+                    nativeAudio.load();
+                    
+                    recordStatus.textContent = "✅ 準提法音錄製成功！已就緒";
+                    startBtn.disabled = false;
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.textContent = "⏹️ 錄完再點擊一下 (停止)";
+                recordBtn.classList.add('recording');
+                recordStatus.textContent = "🎙️ 正在錄製準提咒...請誦經...";
+                startBtn.disabled = true;
+            } catch (err) {
+                alert("無法開啟麥克風，請檢查系統與瀏覽器的權限設定。");
+                console.error(err);
+            }
+        } else {
+            mediaRecorder.stop();
+            isRecording = false;
+            recordBtn.textContent = "🔴 重新錄製準提咒";
+            recordBtn.classList.remove('recording');
+        }
+    });
+
+    // 模式切換
+    modeRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            isInfinite = (e.target.value === 'infinite');
+            targetCountDiv.style.display = isInfinite ? 'none' : 'block';
+        });
+    });
+
+    // 2. 播放與計數監聽 (無縫連播)
+    nativeAudio.addEventListener('ended', () => {
+        if (!isPlaying) return;
+
+        count++;
+        currentCountDisplay.textContent = count;
+        updateProgress();
+
+        if (!isInfinite && count >= target) {
+            finishSession();
+            return;
+        }
+
+        setTimeout(() => {
+            if (isPlaying) {
+                nativeAudio.currentTime = 0;
+                nativeAudio.play().catch(e => console.log("播放被阻擋", e));
+            }
+        }, 10);
+    });
+
+    function updateProgress() {
+        if (isInfinite) {
+            progressText.textContent = `大悲修持中（無限循環）...`;
+        } else {
+            progressText.textContent = `目標：${target} 次 / 已完成：${Math.round((count/target)*100)}%`;
+        }
+    }
+
+    // 開始連播
+    startBtn.addEventListener('click', () => {
+        if (!audioUrl) return;
+
+        isPlaying = true;
+        count = 0;
+        target = parseInt(targetCountSelect.value);
+
+        currentCountDisplay.textContent = count;
+        updateProgress();
+
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        recordBtn.disabled = true;
+
+        nativeAudio.currentTime = 0;
+        nativeAudio.play().then(() => {
+            nativeAudio.volume = 1.0;
+        }).catch(err => {
+            alert("音訊播放被阻擋，請確認網頁音訊權限已開啟。");
+            stopAudio();
+        });
+    });
+
+    // 暫停或停止
+    stopBtn.addEventListener('click', () => {
+        stopAudio();
+        progressText.textContent = "修持手動暫停";
+        saveHistory(count, false);
+    });
+
+    function stopAudio() {
+        isPlaying = false;
+        nativeAudio.pause();
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        recordBtn.disabled = false;
+    }
+
+    function finishSession() {
+        stopAudio();
+        progressText.textContent = "🎉 功德圓滿，請及時迴向！";
+        saveHistory(count, true);
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+
+    // 3. 本地儲存與紀錄排版
+    function saveHistory(finalCount, isCompleted) {
+        if (finalCount === 0) return;
+        const history = JSON.parse(localStorage.getItem('zhunti_rec_history') || '[]');
+        const log = {
+            date: new Date().toLocaleString('zh-HK'),
+            count: finalCount,
+            status: isCompleted ? "功德圓滿" : "中途結束"
+        };
+        history.unshift(log);
+        localStorage.setItem('zhunti_rec_history', JSON.stringify(history));
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const history = JSON.parse(localStorage.getItem('zhunti_rec_history') || '[]');
+        historyList.innerHTML = history.map(item => `
+            <li>[${item.date}] 持誦 <b>${item.count}</b> 次 (${item.status})</li>
+        `).join('');
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+        if(confirm('確定要清除所有持誦紀錄？')) {
+            localStorage.removeItem('zhunti_rec_history');
+            renderHistory();
+        }
+    });
+
+    // 初始化歷史數據
+    renderHistory();
+</script>
+
+</body>
+</html>
