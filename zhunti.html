@@ -140,10 +140,19 @@
         .merit-title { font-weight: bold; color: #b28500; }
 
         /* 迴向文展示 */
-        .dedication-list { display: flex; flex-direction: column; gap: 10px; }
-        .dedication-item { background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #ebdcb9; font-size: 14px; text-align: justify; }
-        .dedication-label { font-weight: bold; color: var(--primary-color); margin-bottom: 3px; font-size: 13px; border-bottom: 1px dashed #ebdcb9; }
+        .dedication-list { display: flex; flex-direction: column; gap: 12px; }
+        .dedication-item { background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #ebdcb9; font-size: 14px; text-align: justify; position: relative; }
+        .dedication-label { font-weight: bold; color: var(--primary-color); margin-bottom: 6px; font-size: 13px; border-bottom: 1px dashed #ebdcb9; padding-bottom: 3px; }
+        .dedication-text { margin-bottom: 35px; /* 為右下角按鈕留空間 */ }
         .dedication-item span.highlight { color: var(--accent-color); font-weight: bold; }
+        
+        /* 鳴磬按鈕樣式 */
+        .btn-chime {
+            position: absolute; bottom: 8px; right: 8px; padding: 4px 10px; font-size: 12px; width: auto;
+            background-color: #dfba6b; color: #3d2514; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-chime:hover { background-color: #ccad00; }
+        .btn-chime:active { transform: scale(0.95); }
 
         .history-list { max-height: 100px; overflow-y: auto; padding-left: 20px; font-size: 12px; }
     </style>
@@ -155,8 +164,6 @@
 
     <!-- 隱藏的原生音訊 -->
     <audio id="nativeAudio" playsinline style="display: none;"></audio>
-    <!-- Web Audio 用於合成模擬背景音 -->
-    <audio id="bgMusicNode" style="display:none;"></audio>
 
     <!-- ① 開咒偈 -->
     <div class="section">
@@ -171,12 +178,12 @@
     <div class="section">
         <div class="section-title">② 準提咒文</div>
         <div class="mantra-block">
-            <div class="mantra-sanskrit">नमः सप्तानाम् सम्यक्सम्बुद्ध कोटिनाम् तद्यथा</div>
+            <div class="mantra-sanskrit">नमः सप्तानाम् samyaksambuddha koṭīnām tadyathā</div>
             <div class="mantra-roman">namaḥ saptānām samyaksambuddha koṭīnām tadyathā</div>
             <div class="mantra-chinese">南無 颯哆喃 三藐三勃陀 俱胝喃 怛姪他</div>
         </div>
         <div class="mantra-block">
-            <div class="mantra-sanskrit">ॐ चले चुله चुन्दी स्वाहा</div>
+            <div class="mantra-sanskrit">ॐ चले चुले चुन्दी स्वाहा</div>
             <div class="mantra-roman">oṃ cale cule cundī svāhā</div>
             <div class="mantra-chinese">唵 折隸 主隸 準提 娑婆訶</div>
         </div>
@@ -202,7 +209,7 @@
                 </select>
             </div>
             <div class="input-group">
-                <label for="speedSelect">⚡ 唸咒間隔速度：</label>
+                <label for="speedSelect">⚡ 專注連播間隔：</label>
                 <select id="speedSelect">
                     <option value="100">0.1 秒 (極速緊湊)</option>
                     <option value="500">0.5 秒 (流暢法速)</option>
@@ -298,30 +305,35 @@
         <div class="dedication-list">
             <div class="dedication-item">
                 <div class="dedication-label">例一：迴向準提鏡 (護衛家門)</div>
-                <div id="log-mirror"></div>
+                <div class="dedication-text" id="log-mirror"></div>
+                <button class="btn-chime" onclick="playChimeSound()">🔔 鳴磬迴向</button>
             </div>
             <div class="dedication-item">
                 <div class="dedication-label">例二：求消業增福 (消除業障)</div>
-                <div id="log-blessing"></div>
+                <div class="dedication-text" id="log-blessing"></div>
+                <button class="btn-chime" onclick="playChimeSound()">🔔 鳴磬迴向</button>
             </div>
             <div class="dedication-item">
                 <div class="dedication-label">例三：求學業 (金榜提名)</div>
-                <div id="log-academic"></div>
+                <div class="dedication-text" id="log-academic"></div>
+                <button class="btn-chime" onclick="playChimeSound()">🔔 鳴磬迴向</button>
             </div>
             <div class="dedication-item">
                 <div class="dedication-label">例四：求人緣、婚戀 (人天敬愛)</div>
-                <div id="log-relationship"></div>
+                <div class="dedication-text" id="log-relationship"></div>
+                <button class="btn-chime" onclick="playChimeSound()">🔔 鳴磬迴向</button>
             </div>
             <div class="dedication-item">
                 <div class="dedication-label">例五：求財運 (財源富足)</div>
-                <div id="log-wealth"></div>
+                <div class="dedication-text" id="log-wealth"></div>
+                <button class="btn-chime" onclick="playChimeSound()">🔔 鳴磬迴向</button>
             </div>
         </div>
     </div>
 
     <!-- 歷史日誌 -->
     <div class="section" style="border-left-color: #555;">
-        <div class="section-title" style="color: #555;">📊 準提修持功德錄</div>
+        <div class="section-title" style="color: #555;">📊 準提修持功功德錄</div>
         <ul class="history-list" id="historyList"></ul>
         <button id="clearHistoryBtn" style="padding: 4px 10px; font-size: 11px; width: auto; background: #eee; color: #333;">清除歷史紀錄</button>
     </div>
@@ -374,7 +386,6 @@
     let target = 108;
     let isInfinite = false;
     
-    // 警策語句庫，彈出時隨機切換
     const alertQuotes = [
         "請集中精神，收攝身心，專注於咒音，莫隨妄想分心流轉。",
         "此時不向身中覓，更待何時度此身？請收回散亂的心，專注當下。",
@@ -382,9 +393,7 @@
         "莫隨燈花空計數，一聲佛咒一清涼。打起精神，專注持誦！"
     ];
 
-    // Web Audio 音效合成器 (免除上傳音訊檔的麻煩，完全純前端生成木魚與萬人共鳴效果)
     let audioCtx = null;
-    let bgTimer = null;
 
     function initAudioContext() {
         if (!audioCtx) {
@@ -392,12 +401,52 @@
         }
     }
 
-    // 模擬木魚或法會宏大低頻共鳴
+    // 1. 純前端物理模擬：引磬「叮——」聲生成器
+    function playChimeSound() {
+        initAudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+        
+        // 引磬是由高頻金屬敲擊產生的，需要一個主音頻配合數個高頻泛音
+        const frequencies = [880, 1320, 1760, 2200]; // 根音 A5 及其和諧泛音群
+        const gains = [0.4, 0.2, 0.15, 0.08];       // 泛音強度遞減
+        
+        // 建立總輸出增益節點（控制整體尾音淡出）
+        const masterGain = audioCtx.createGain();
+        masterGain.connect(audioCtx.destination);
+        
+        // 引磬敲擊：瞬間達到最大音量，隨後悠長地衰減（持續約 2.5 秒）
+        masterGain.gain.setValueAtTime(0, now);
+        masterGain.gain.linearRampToValueAtTime(1.0, now + 0.005); 
+        masterGain.gain.exponentialRampToValueAtTime(0.3, now + 0.2);
+        masterGain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+
+        // 為每個頻率分量建立振盪器
+        frequencies.forEach((freq, index) => {
+            const osc = audioCtx.createOscillator();
+            const oscGain = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            
+            // 微調高頻成分的淡出速度，讓金屬餘音更逼真
+            oscGain.gain.setValueAtTime(gains[index], now);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, now + (2.5 - index * 0.4));
+            
+            osc.connect(oscGain);
+            oscGain.connect(masterGain);
+            
+            osc.start(now);
+            osc.stop(now + 2.5);
+        });
+    }
+
+    // 2. 模擬木魚與法會背景音
     function playSyntheticBg(type) {
         if (!audioCtx || audioCtx.state === 'suspended') return;
         
         if (type === 'muyu') {
-            // 單音木魚敲擊聲
             let osc = audioCtx.createOscillator();
             let gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
@@ -406,16 +455,15 @@
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
             osc.start(); osc.stop(audioCtx.currentTime + 0.3);
         } else if (type === 'assembly') {
-            // 萬人共修：生成一個雄厚、低沉的持續嗡嗡共振音（模擬大型法會大殿內眾人萬口同聲的迴盪聲場）
             let osc1 = audioCtx.createOscillator();
             let osc2 = audioCtx.createOscillator();
             let filter = audioCtx.createBiquadFilter();
             let gain = audioCtx.createGain();
             
-            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(65, audioCtx.currentTime); // 低音 C2
-            osc2.type = 'triangle'; osc2.frequency.setValueAtTime(130, audioCtx.currentTime); // 諧音 C3
+            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(65, audioCtx.currentTime); 
+            osc2.type = 'triangle'; osc2.frequency.setValueAtTime(130, audioCtx.currentTime); 
             
-            filter.type = 'lowpass'; filter.frequency.setValueAtTime(180, audioCtx.currentTime); // 濾除高刺音，留存莊嚴厚重感
+            filter.type = 'lowpass'; filter.frequency.setValueAtTime(180, audioCtx.currentTime); 
             gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
             
@@ -425,22 +473,20 @@
         }
     }
 
-    // 觸發背景音樂排程
     function triggerBgSound() {
         const bgType = bgMusicSelect.value;
         if (bgType === 'none' || !isPlaying) return;
         playSyntheticBg(bgType);
     }
 
-    // 終身累計與百分比渲染
-    const MILESTONE = 100000; // 十萬遍功德里程碑
+    // 終身累計與百分比
+    const MILESTONE = 100000;
     function renderTotalStats() {
         const total = parseInt(localStorage.getItem('zhunti_total_count') || '0');
         totalCountDisplay.textContent = total.toLocaleString();
         
-        // 計算里程碑百分比
         let pct = (total / MILESTONE) * 100;
-        if (pct > 100) pct = 100; // 如果超出了就維持100%或開闢新里程
+        if (pct > 100) pct = 100;
         
         progressBar.style.width = `${pct}%`;
         progressBarText.textContent = `終身功德總進度: ${pct.toFixed(2)}% (目標 10 萬遍)`;
@@ -467,7 +513,7 @@
     userNameInput.addEventListener('input', updateAllDedications);
     targetObjectInput.addEventListener('input', updateAllDedications);
 
-    // 1. 錄音核心邏輯
+    // 錄音邏輯
     recordBtn.addEventListener('click', async () => {
         if (!isRecording) {
             audioChunks = [];
@@ -518,20 +564,19 @@
         });
     });
 
-    // 2. 播放與速度間隔核心
+    // 播放與速度間隔控制
     nativeAudio.addEventListener('ended', () => {
         if (!isPlaying) return;
 
         count++;
         currentCountDisplay.textContent = count;
-        addTotalCount(1); // 終身大數即時加 1 遍
+        addTotalCount(1);
         updateProgress();
 
-        // 檢查防分心定期提醒機制
         const alertTrigger = parseInt(alertIntervalSelect.value);
         if (alertTrigger > 0 && count % alertTrigger === 0) {
             triggerAlertPopup();
-            return; // 暫停重播，等待用戶點擊關閉
+            return;
         }
 
         if (!isInfinite && count >= target) {
@@ -539,11 +584,10 @@
             return;
         }
 
-        // 依據用戶選擇的「間隔速度」進行延遲重播
         const speedInterval = parseInt(speedSelect.value);
         setTimeout(() => {
             if (isPlaying) {
-                triggerBgSound(); // 同步觸發選定的背景音樂
+                triggerBgSound();
                 nativeAudio.currentTime = 0;
                 nativeAudio.play().catch(e => console.log(e));
             }
@@ -558,10 +602,8 @@
         }
     }
 
-    // 防分心彈窗控制
     function triggerAlertPopup() {
         nativeAudio.pause();
-        // 隨機選一句警策語
         alertMessage.textContent = alertQuotes[Math.floor(Math.random() * alertQuotes.length)];
         alertOverlay.classList.add('show');
     }
@@ -575,14 +617,11 @@
         }
     });
 
-    // 開始持誦
     startBtn.addEventListener('click', () => {
         if (!audioUrl) return;
         
         initAudioContext();
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
 
         isPlaying = true;
         count = 0;
@@ -595,7 +634,7 @@
         stopBtn.disabled = false;
         recordBtn.disabled = true;
 
-        triggerBgSound(); // 播第一聲伴奏
+        triggerBgSound();
         nativeAudio.currentTime = 0;
         nativeAudio.play().then(() => {
             nativeAudio.volume = 1.0;
@@ -604,7 +643,6 @@
         });
     });
 
-    // 停止
     stopBtn.addEventListener('click', () => {
         stopAudio();
         progressText.textContent = "修持手動暫停";
@@ -626,7 +664,6 @@
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
 
-    // 3. 歷史紀錄本地存儲
     function saveHistory(finalCount, isCompleted) {
         if (finalCount === 0) return;
         const history = JSON.parse(localStorage.getItem('zhunti_rec_history') || '[]');
