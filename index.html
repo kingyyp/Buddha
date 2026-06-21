@@ -111,6 +111,19 @@
         .btn-record.recording { background-color: #333; animation: pulse 1.5s infinite; }
         .btn-start { background-color: var(--primary-color); color: white; }
         .btn-stop { background-color: #555; color: white; }
+        
+        /* 手動功德按鈕特殊樣式 */
+        .btn-manual-count {
+            background: linear-gradient(135deg, #e6b800, #b8860b);
+            color: white;
+            width: 100%;
+            margin-bottom: 15px;
+            font-size: 18px;
+            box-shadow: 0 4px 10px rgba(184, 134, 11, 0.2);
+            transition: transform 0.1s;
+        }
+        .btn-manual-count:active { transform: scale(0.98); }
+
         button:disabled { background-color: #ccc !important; cursor: not-allowed; color: #888; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
@@ -189,7 +202,7 @@
                 <label for="bgMusicSelect">🎵 背景音效環境 (切換可試聽)：</label>
                 <select id="bgMusicSelect">
                     <option value="none">無背景音樂</option>
-                    <option value="muyu">🎧 靜心沉穩木魚</option>
+                    <option value="muyu">🎧 靜心沉穩木魚 (已大幅放大)</option>
                     <option value="assembly">👥 萬人法會共修 (大殿雄厚共鳴)</option>
                 </select>
             </div>
@@ -206,9 +219,12 @@
         </div>
         <div class="config-grid">
             <div class="input-group">
-                <label for="alertInterval">⏱️ 防分心警策提醒：</label>
+                <label for="alertInterval">⏱️ 防分心警策提醒間隔：</label>
                 <select id="alertInterval">
                     <option value="0">不開啟提醒</option>
+                    <option value="3">每隔 3 遍 (測試專用) ✨</option>
+                    <option value="7">每隔 7 遍</option>
+                    <option value="9">每隔 9 遍</option>
                     <option value="21">每隔 21 遍提醒</option>
                     <option value="49" selected>每隔 49 遍提醒</option>
                     <option value="108">每隔 108 遍提醒</option>
@@ -233,6 +249,8 @@
             </select>
         </div>
     </div>
+
+    <button class="btn-manual-count" id="manualCountBtn">✨ 手動點擊持誦 (清脆引磬計數+1)</button>
 
     <div class="section" style="background: #fff; border-left-color: #ccad00;">
         <div class="section-title" style="color: #ccad00;">📊 本次持誦與終身功德累計</div>
@@ -339,6 +357,7 @@
     const progressText = document.getElementById('progressText');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
+    const manualCountBtn = document.getElementById('manualCountBtn');
     const historyList = document.getElementById('historyList');
     const clearHistoryBtn = document.getElementById('clearHistoryBtn');
     const nativeAudio = document.getElementById('nativeAudio');
@@ -407,7 +426,6 @@
             osc.stop(now + 3.0);
         });
 
-        // 構建 Echo 迴路
         const delayNode = audioCtx.createDelay(1.0);
         delayNode.delayTime.setValueAtTime(0.35, now);
         const feedbackGain = audioCtx.createGain();
@@ -423,50 +441,59 @@
         feedbackGain.connect(masterGain);
     }
 
-    // 2. 升級版：模擬木魚與宏大萬人法會共修背景音
+    // 2. 升級版：模擬木魚（大幅度放大）與萬人共修音
     function playSyntheticBg(type, isPreview = false) {
         initAudioContext();
         const now = audioCtx.currentTime;
         
         if (type === 'muyu') {
+            // 木魚聲深度改造：多重低沉諧波，且大幅放大增益
             let osc = audioCtx.createOscillator();
+            let oscSub = audioCtx.createOscillator(); // 增加低頻共鳴，讓木魚更厚實
             let gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = 'sine'; osc.frequency.setValueAtTime(160, now);
-            gain.gain.setValueAtTime(0.5, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-            osc.start(); osc.stop(now + 0.3);
+            
+            osc.type = 'sine'; 
+            osc.frequency.setValueAtTime(165, now); // 核心沉穩頻率
+            
+            oscSub.type = 'triangle';
+            oscSub.frequency.setValueAtTime(82.5, now); // 低八度沉悶厚重感
+            
+            osc.connect(gain);
+            oscSub.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            // 【核心優化】大幅提升音量至原來的 4.5 倍
+            gain.gain.setValueAtTime(2.2, now); 
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            
+            osc.start(); oscSub.start();
+            osc.stop(now + 0.25); oscSub.stop(now + 0.25);
         } else if (type === 'assembly') {
-            // 萬人共修深度升級：建立多重超低頻和弦共振疊加
-            const baseFreqs = [65.4, 73.4, 98.0, 130.8]; // 雄厚的低頻大雄寶殿聲場和弦
-            const duration = isPreview ? 2.5 : 1.5; // 如果是選單試聽，長度放長，聽得更清楚
+            const baseFreqs = [65.4, 73.4, 98.0, 130.8]; 
+            const duration = isPreview ? 2.5 : 1.5; 
             
             const sourceGain = audioCtx.createGain();
             sourceGain.gain.setValueAtTime(0, now);
-            sourceGain.gain.linearRampToValueAtTime(0.25, now + 0.2); // 萬人齊誦的漸強感
+            sourceGain.gain.linearRampToValueAtTime(0.25, now + 0.2); 
             sourceGain.gain.exponentialRampToValueAtTime(0.1, now + duration - 0.5);
             sourceGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
             baseFreqs.forEach((freq, i) => {
                 const osc = audioCtx.createOscillator();
-                // 鋸齒波混合三角波，產生極具分量、如萬人喉嚨共鳴的「嗡——」聲
                 osc.type = i % 2 === 0 ? 'sawtooth' : 'triangle';
                 osc.frequency.setValueAtTime(freq, now);
-                // 微微加入頻率抖動，模擬不同人的微小音差，聽起來更像人聲共修
                 osc.detune.setValueAtTime((i - 1.5) * 8, now); 
                 osc.connect(sourceGain);
                 osc.start(now);
                 osc.stop(now + duration);
             });
 
-            // 低通濾波器，濾掉鋸齒波的高頻刺耳雜音，只保留莊嚴厚重
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'lowpass';
             filter.frequency.setValueAtTime(150, now);
 
-            // 為萬人共修同樣套用大殿空間 Echo 延遲迴響
             const delayNode = audioCtx.createDelay(1.0);
-            delayNode.delayTime.setValueAtTime(0.4, now); // 大殿開闊感
+            delayNode.delayTime.setValueAtTime(0.4, now); 
             const feedbackGain = audioCtx.createGain();
             feedbackGain.gain.setValueAtTime(0.35, now); 
 
@@ -474,19 +501,17 @@
             masterGain.connect(audioCtx.destination);
 
             sourceGain.connect(filter);
-            filter.connect(masterGain); // 直達共鳴
-            filter.connect(delayNode);  // 進入迴音牆
+            filter.connect(masterGain); 
+            filter.connect(delayNode);  
             delayNode.connect(feedbackGain);
             feedbackGain.connect(delayNode);
             feedbackGain.connect(masterGain);
         }
     }
 
-    // 監聽下拉選單：只要用戶一切換，立刻「解鎖音訊」並「即時試聽」效果！
     bgMusicSelect.addEventListener('change', (e) => {
         const val = e.target.value;
         if (val !== 'none') {
-            // 主動觸發試聽
             playSyntheticBg(val, true);
         }
     });
@@ -516,6 +541,21 @@
         renderTotalStats();
     }
 
+    // 新增功能：手動點擊累積按鈕事件（播放清脆引磬，並使次數 +1）
+    manualCountBtn.addEventListener('click', () => {
+        playChimeSound(); // 觸發清脆聲音
+        count++;
+        currentCountDisplay.textContent = count;
+        addTotalCount(1);
+        updateProgress();
+
+        // 檢查是否達到防分心彈窗條件
+        const alertTrigger = parseInt(alertIntervalSelect.value);
+        if (alertTrigger > 0 && count % alertTrigger === 0) {
+            triggerAlertPopup();
+        }
+    });
+
     function updateAllDedications() {
         const name = userNameInput.value || "某某某";
         const targetObj = targetObjectInput.value || "累劫冤親債主";
@@ -532,7 +572,7 @@
 
     // 錄音相關
     recordBtn.addEventListener('click', async () => {
-        initAudioContext(); // 點擊錄音時解鎖 AudioContext
+        initAudioContext();
         if (!isRecording) {
             audioChunks = [];
             try {
@@ -637,7 +677,6 @@
 
     startBtn.addEventListener('click', () => {
         if (!audioUrl) return;
-        
         initAudioContext();
 
         isPlaying = true;
@@ -649,7 +688,7 @@
 
         startBtn.disabled = true;
         stopBtn.disabled = false;
-        recordBtn.disabled = false; // 允許中途不中斷
+        recordBtn.disabled = false;
 
         triggerBgSound();
         nativeAudio.currentTime = 0;
