@@ -112,7 +112,6 @@
         .btn-start { background-color: var(--primary-color); color: white; }
         .btn-stop { background-color: #555; color: white; }
         
-        /* 手動功德按鈕特殊樣式 */
         .btn-manual-count {
             background: linear-gradient(135deg, #e6b800, #b8860b);
             color: white;
@@ -127,17 +126,31 @@
         button:disabled { background-color: #ccc !important; cursor: not-allowed; color: #888; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-        .alert-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4);
-            display: flex; justify-content: center; align-items: center; z-index: 1000; visibility: hidden; opacity: 0; transition: all 0.3s;
+        /* 【全新改進】自動淡入淡出的頂部通知橫幅樣式 */
+        .toast-alert {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: #fff7e6;
+            border: 3px solid var(--primary-color);
+            border-radius: 12px;
+            padding: 15px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 9999;
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none; /* 避免擋住使用者點擊網頁其他地方 */
+            opacity: 0;
         }
-        .alert-overlay.show { visibility: visible; opacity: 1; }
-        .alert-box {
-            background: #fff7e6; border: 3px solid var(--primary-color); padding: 25px; border-radius: 12px;
-            max-width: 80%; width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        .toast-alert.show {
+            top: 20px;
+            opacity: 1;
         }
-        .alert-box h3 { margin-top: 0; color: var(--accent-color); }
-        .alert-box button { background: var(--primary-color); color: white; padding: 8px 20px; font-size: 14px; width: auto; margin-top: 15px; }
+        .toast-alert h3 { margin: 0 0 5px 0; color: var(--accent-color); font-size: 16px; }
+        .toast-alert p { margin: 0; font-size: 14px; color: var(--text-color); font-weight: 500; }
 
         .merit-guide { font-size: 13px; color: #5c4033; background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #ebdcb9; }
         .merit-item { margin-bottom: 6px; border-bottom: 1px dashed #eee; padding-bottom: 4px; }
@@ -167,6 +180,7 @@
 
     <audio id="nativeAudio" playsinline style="display: none;"></audio>
 
+    <!-- ① 開咒偈 -->
     <div class="section">
         <div class="section-title">① 開咒偈</div>
         <div class="gatha-text">稽首皈依蘇悉帝，</div>
@@ -175,6 +189,7 @@
         <div class="gatha-text">惟願慈悲垂加護。</div>
     </div>
 
+    <!-- ② 咒文內容 -->
     <div class="section">
         <div class="section-title">② 準提咒文</div>
         <div class="mantra-block">
@@ -189,12 +204,14 @@
         </div>
     </div>
 
+    <!-- 錄音區 -->
     <div class="section" style="background: #fff5f5; border-left-color: var(--accent-color);">
         <div class="section-title" style="color: var(--accent-color);">🎙️ 現場法音錄製</div>
         <button id="recordBtn" class="btn-record">🔴 開始錄製一句準提咒</button>
         <div id="recordStatus" class="status-tag" style="font-size:12px; text-align:center; color:#777; margin-top:5px;">尚未錄音</div>
     </div>
 
+    <!-- 修持環境配置 -->
     <div class="section">
         <div class="section-title">⚙️ 精進修持配置</div>
         <div class="config-grid">
@@ -202,7 +219,7 @@
                 <label for="bgMusicSelect">🎵 背景音效環境 (切換可試聽)：</label>
                 <select id="bgMusicSelect">
                     <option value="none">無背景音樂</option>
-                    <option value="muyu">🎧 靜心沉穩木魚 (已大幅放大)</option>
+                    <option value="muyu">🎧 靜心沉穩木魚 (大音量版)</option>
                     <option value="assembly">👥 萬人法會共修 (大殿雄厚共鳴)</option>
                 </select>
             </div>
@@ -250,8 +267,10 @@
         </div>
     </div>
 
+    <!-- 手動點擊隨緣持誦累積按鈕 -->
     <button class="btn-manual-count" id="manualCountBtn">✨ 手動點擊持誦 (清脆引磬計數+1)</button>
 
+    <!-- 計數與功德進度大面板 -->
     <div class="section" style="background: #fff; border-left-color: #ccad00;">
         <div class="section-title" style="color: #ccad00;">📊 本次持誦與終身功德累計</div>
         <div class="counter-grid">
@@ -272,6 +291,7 @@
         </div>
     </div>
 
+    <!-- 經典功德里程碑提示 -->
     <div class="section">
         <div class="section-title">📖 準提經典功德經證 (增長信心)</div>
         <div class="merit-guide">
@@ -281,11 +301,13 @@
         </div>
     </div>
 
+    <!-- 播放控制按鈕 -->
     <div class="btn-group">
         <button class="btn-start" id="startBtn" disabled>開始持誦</button>
         <button class="btn-stop" id="stopBtn" disabled>暫停/停止</button>
     </div>
 
+    <!-- ③ 迴向文 -->
     <div class="section">
         <div class="section-title">③ 功德迴向文</div>
         <div class="input-group">
@@ -329,6 +351,7 @@
         </div>
     </div>
 
+    <!-- 歷史日誌 -->
     <div class="section" style="border-left-color: #555;">
         <div class="section-title" style="color: #555;">📊 準提修持功功德錄</div>
         <ul class="history-list" id="historyList"></ul>
@@ -336,12 +359,10 @@
     </div>
 </div>
 
-<div class="alert-overlay" id="alertOverlay">
-    <div class="alert-box">
-        <h3>✨ 正念警策提醒</h3>
-        <p id="alertMessage">請集中精神，收攝身心，專注於咒音，莫隨妄想分心流轉。</p>
-        <button id="alertCloseBtn">弟子明白 (繼續持誦)</button>
-    </div>
+<!-- 【全新改進】改為自動彈出與自動隱藏的橫幅，不擋住、不中斷唸咒 -->
+<div class="toast-alert" id="toastAlert">
+    <h3>✨ 正念警策提醒</h3>
+    <p id="alertMessage">請集中精神，收攝身心...</p>
 </div>
 
 <script>
@@ -368,8 +389,7 @@
     const bgMusicSelect = document.getElementById('bgMusicSelect');
     const speedSelect = document.getElementById('speedSelect');
     const alertIntervalSelect = document.getElementById('alertInterval');
-    const alertOverlay = document.getElementById('alertOverlay');
-    const alertCloseBtn = document.getElementById('alertCloseBtn');
+    const toastAlert = document.getElementById('toastAlert');
     const alertMessage = document.getElementById('alertMessage');
 
     let mediaRecorder = null;
@@ -381,6 +401,7 @@
     let count = 0;
     let target = 108;
     let isInfinite = false;
+    let toastTimer = null;
     
     const alertQuotes = [
         "請集中精神，收攝身心，專注於咒音，莫隨妄想分心流轉。",
@@ -400,7 +421,6 @@
         }
     }
 
-    // 1. 引磬「叮——」聲模擬器（帶 Echo 迴音）
     function playChimeSound() {
         initAudioContext();
         const now = audioCtx.currentTime;
@@ -441,28 +461,25 @@
         feedbackGain.connect(masterGain);
     }
 
-    // 2. 升級版：模擬木魚（大幅度放大）與萬人共修音
     function playSyntheticBg(type, isPreview = false) {
         initAudioContext();
         const now = audioCtx.currentTime;
         
         if (type === 'muyu') {
-            // 木魚聲深度改造：多重低沉諧波，且大幅放大增益
             let osc = audioCtx.createOscillator();
-            let oscSub = audioCtx.createOscillator(); // 增加低頻共鳴，讓木魚更厚實
+            let oscSub = audioCtx.createOscillator(); 
             let gain = audioCtx.createGain();
             
             osc.type = 'sine'; 
-            osc.frequency.setValueAtTime(165, now); // 核心沉穩頻率
+            osc.frequency.setValueAtTime(165, now); 
             
             oscSub.type = 'triangle';
-            oscSub.frequency.setValueAtTime(82.5, now); // 低八度沉悶厚重感
+            oscSub.frequency.setValueAtTime(82.5, now); 
             
             osc.connect(gain);
             oscSub.connect(gain);
             gain.connect(audioCtx.destination);
             
-            // 【核心優化】大幅提升音量至原來的 4.5 倍
             gain.gain.setValueAtTime(2.2, now); 
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
             
@@ -522,7 +539,6 @@
         playSyntheticBg(bgType, false);
     }
 
-    // 終身累計數據與進度條
     const MILESTONE = 100000;
     function renderTotalStats() {
         const total = parseInt(localStorage.getItem('zhunti_total_count') || '0');
@@ -532,7 +548,7 @@
         if (pct > 100) pct = 100;
         
         progressBar.style.width = `${pct}%`;
-        progressBarText.textContent = `終身功德總進度: ${pct.toFixed(2)}% (目標 10 萬遍)`;
+        progressBarText.textContent = `終身功功德總進度: ${pct.toFixed(2)}% (目標 10 萬遍)`;
     }
 
     function addTotalCount(amount) {
@@ -541,18 +557,16 @@
         renderTotalStats();
     }
 
-    // 新增功能：手動點擊累積按鈕事件（播放清脆引磬，並使次數 +1）
     manualCountBtn.addEventListener('click', () => {
-        playChimeSound(); // 觸發清脆聲音
+        playChimeSound(); 
         count++;
         currentCountDisplay.textContent = count;
         addTotalCount(1);
         updateProgress();
 
-        // 檢查是否達到防分心彈窗條件
         const alertTrigger = parseInt(alertIntervalSelect.value);
         if (alertTrigger > 0 && count % alertTrigger === 0) {
-            triggerAlertPopup();
+            triggerToastPopup(); // 手動點擊也會觸發無感提醒
         }
     });
 
@@ -570,7 +584,6 @@
     userNameInput.addEventListener('input', updateAllDedications);
     targetObjectInput.addEventListener('input', updateAllDedications);
 
-    // 錄音相關
     recordBtn.addEventListener('click', async () => {
         initAudioContext();
         if (!isRecording) {
@@ -631,10 +644,10 @@
         addTotalCount(1);
         updateProgress();
 
+        // 檢查是否達到防分心條件
         const alertTrigger = parseInt(alertIntervalSelect.value);
         if (alertTrigger > 0 && count % alertTrigger === 0) {
-            triggerAlertPopup();
-            return;
+            triggerToastPopup(); // 呼叫全新橫幅，不中斷、不暫停音訊
         }
 
         if (!isInfinite && count >= target) {
@@ -660,20 +673,22 @@
         }
     }
 
-    function triggerAlertPopup() {
-        nativeAudio.pause();
+    // 【全新重構】自動淡入淡出的無感提醒機制
+    function triggerToastPopup() {
+        // 隨機抽選一句警策語
         alertMessage.textContent = alertQuotes[Math.floor(Math.random() * alertQuotes.length)];
-        alertOverlay.classList.add('show');
+        
+        // 顯示通知橫幅
+        toastAlert.classList.add('show');
+        
+        // 清除上一次的計時器（防重疊）
+        if (toastTimer) clearTimeout(toastTimer);
+        
+        // 5 秒鐘之後自動隱藏，完全不干擾、不需要任何鼠標點擊
+        toastTimer = setTimeout(() => {
+            toastAlert.classList.remove('show');
+        }, 5000);
     }
-
-    alertCloseBtn.addEventListener('click', () => {
-        alertOverlay.classList.remove('show');
-        if (isPlaying) {
-            triggerBgSound();
-            nativeAudio.currentTime = 0;
-            nativeAudio.play().catch(e => console.log(e));
-        }
-    });
 
     startBtn.addEventListener('click', () => {
         if (!audioUrl) return;
