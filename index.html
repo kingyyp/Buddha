@@ -106,7 +106,7 @@
         .progress-bar { background: linear-gradient(90deg, #ccad00, #b8860b); height: 100%; width: 0%; transition: width 0.3s; }
         .progress-text { position: absolute; width: 100%; text-align: center; font-size: 11px; font-weight: bold; color: #333; top: -1px; }
 
-        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
         button { flex: 1; padding: 12px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-record { background-color: var(--accent-color); color: white; width: 100%; }
         .btn-record.recording { background-color: #333; animation: pulse 1.5s infinite; }
@@ -255,6 +255,11 @@
         </div>
     </div>
 
+    <div class="btn-group">
+        <button class="btn-start" id="startBtn" disabled>▶️ 開始自動持誦</button>
+        <button class="btn-stop" id="stopBtn" disabled>⏸️ 暫停/停止</button>
+    </div>
+
     <button class="btn-manual-count" id="manualCountBtn">✨ 手動點擊持誦 (清脆引磬計數+1)</button>
 
     <div class="section" style="background: #fff; border-left-color: #ccad00;">
@@ -268,12 +273,12 @@
             <div class="counter-box total">
                 <div class="counter-label">🌟 終身累計總數量 🌟</div>
                 <div class="counter-num" id="totalCount">0</div>
-                <div style="font-size:11px; color:#b28500; font-weight:bold;">目標里程碑：10 萬遍</div>
+                <div id="milestoneTargetLabel" style="font-size:11px; color:#b28500; font-weight:bold;">目標里程碑：10 萬遍</div>
             </div>
         </div>
         <div class="progress-container">
             <div class="progress-bar" id="progressBar"></div>
-            <div class="progress-text" id="progressBarText">終身功德總進度: 0% (距十萬遍)</div>
+            <div class="progress-text" id="progressBarText">終身功德總進度: 0%</div>
         </div>
     </div>
 
@@ -284,11 +289,6 @@
             <div class="merit-item"><span class="merit-title">【滿二十萬遍】</span>夢見天界、諸仙，或夢見進入佛剎，見菩薩聽聞妙法。</div>
             <div class="merit-item"><span class="merit-title">【滿百萬遍】</span>得蒙準提菩薩現身加持，清淨三業，現世福樂富足，往生淨土。</div>
         </div>
-    </div>
-
-    <div class="btn-group">
-        <button class="btn-start" id="startBtn" disabled>開始持誦</button>
-        <button class="btn-stop" id="stopBtn" disabled>暫停/停止</button>
     </div>
 
     <div class="section">
@@ -363,6 +363,7 @@
     const historyList = document.getElementById('historyList');
     const clearHistoryBtn = document.getElementById('clearHistoryBtn');
     const nativeAudio = document.getElementById('nativeAudio');
+    const milestoneTargetLabel = document.getElementById('milestoneTargetLabel');
     
     const userNameInput = document.getElementById('userName');
     const targetObjectInput = document.getElementById('targetObject');
@@ -520,21 +521,54 @@
         playSyntheticBg(bgType, false);
     }
 
-    const MILESTONE = 100000;
+    // 【核心邏輯更新】自動檢測並升級動態功德里程碑
     function renderTotalStats() {
         const total = parseInt(localStorage.getItem('zhunti_total_count') || '0');
         totalCountDisplay.textContent = total.toLocaleString();
         
-        let pct = (total / MILESTONE) * 100;
+        let currentMilestoneTarget = 100000; // 預設 10萬
+        let rewardText = "";
+
+        if (total >= 100000 && total < 200000) {
+            currentMilestoneTarget = 200000; // 自動更新為 20萬
+            rewardText = "🎉 已圓滿達成 10 萬遍功德！";
+            milestoneTargetLabel.style.color = "#d9534f"; // 稍微變色凸顯成就
+            milestoneTargetLabel.textContent = `下一階段目標：20 萬遍`;
+        } else if (total >= 200000) {
+            currentMilestoneTarget = 1000000; // 自動更新為 100萬
+            rewardText = "🎉 已圓滿達成 20 萬遍！邁向百萬大圓滿！";
+            milestoneTargetLabel.style.color = "#ff00ff";
+            milestoneTargetLabel.textContent = `極致終點目標：100 萬遍`;
+        } else {
+            milestoneTargetLabel.style.color = "#b28500";
+            milestoneTargetLabel.textContent = `目標里程碑：10 萬遍`;
+        }
+        
+        // 根據當前階段目標動態計算進度條
+        let pct = (total / currentMilestoneTarget) * 100;
         if (pct > 100) pct = 100;
         
         progressBar.style.width = `${pct}%`;
-        progressBarText.textContent = `終身功德總進度: ${pct.toFixed(2)}% (目標 10 萬遍)`;
+        
+        if (rewardText !== "") {
+            progressBarText.textContent = `${rewardText} | 本階進度: ${pct.toFixed(2)}%`;
+        } else {
+            progressBarText.textContent = `終身功德總進度: ${pct.toFixed(2)}% (距${currentMilestoneTarget.toLocaleString()}遍)`;
+        }
     }
 
     function addTotalCount(amount) {
         const currentTotal = parseInt(localStorage.getItem('zhunti_total_count') || '0');
-        localStorage.setItem('zhunti_total_count', currentTotal + amount);
+        const newTotal = currentTotal + amount;
+        
+        // 如果剛好突破大關，彈窗恭喜
+        if (currentTotal < 100000 && newTotal >= 100000) {
+            alert("✨ 功德無量！您已成功達成第一個「10萬遍」準提神咒修持里程碑！經云：滿十萬遍，得見諸佛菩薩，消宿世重障！下一階段20萬遍目標已自動解鎖，請繼續精進！");
+        } else if (currentTotal < 200000 && newTotal >= 200000) {
+            alert("✨ 嘆未曾有！您已成功圓滿「20萬遍」準提神咒修持！經云：滿二十萬遍，夢見進入佛剎。終極「百萬遍」目標已自動開啟，願同證菩提！");
+        }
+
+        localStorage.setItem('zhunti_total_count', newTotal);
         renderTotalStats();
     }
 
