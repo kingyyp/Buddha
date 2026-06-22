@@ -161,7 +161,45 @@
         .btn-chime:hover { background-color: #ccad00; }
         .btn-chime:active { transform: scale(0.95); }
 
-        .history-list { max-height: 100px; overflow-y: auto; padding-left: 20px; font-size: 12px; }
+        /* 【新樣式】功德修持日曆 */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; color: var(--primary-color); }
+        .calendar-nav-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: var(--primary-color); padding: 0 5px; width: auto; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .calendar-day-label { font-size: 12px; font-weight: bold; color: #777; padding: 5px 0; }
+        .calendar-cell { background: #fff; border: 1px solid #e6dfd3; border-radius: 6px; min-height: 42px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 13px; position: relative; cursor: default; }
+        .calendar-cell.empty { background: transparent; border: none; }
+        
+        /* 有精進念經的日子：高亮金黃色 */
+        .calendar-cell.has-practice {
+            background: linear-gradient(135deg, #fffaf0, #f7e7c4);
+            border-color: #ccad00;
+            font-weight: bold;
+            color: #b28500;
+            box-shadow: inset 0 0 5px rgba(204,173,0,0.2);
+        }
+        .calendar-cell.has-practice::after {
+            content: "🌟";
+            font-size: 9px;
+            position: absolute;
+            bottom: 2px;
+        }
+        /* 今天且有念經：特別閃爍激勵 */
+        .calendar-cell.today-practiced {
+            animation: goldPulse 2s infinite;
+            border: 2px solid #b8860b;
+        }
+        @keyframes goldPulse {
+            0% { box-shadow: 0 0 2px #ccad00; }
+            50% { box-shadow: 0 0 10px #ccad00; }
+            100% { box-shadow: 0 0 2px #ccad00; }
+        }
+        /* 滑鼠懸停提示 */
+        .calendar-cell .tooltip {
+            display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+            background: #333; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px;
+            white-space: nowrap; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .calendar-cell:hover .tooltip { display: block; }
     </style>
 </head>
 <body>
@@ -194,7 +232,7 @@
             <div class="mantra-chinese">南無 颯哆喃 三藐三勃陀 俱胝喃 怛姪他</div>
         </div>
         <div class="mantra-block">
-            <div class="mantra-sanskrit">ॐ चले चुले चुन्दी स्वाहा</div>
+            <div class="mantra-sanskrit">ॐ चले चुле चुन्दी स्वाहा</div>
             <div class="mantra-roman">oṃ cale cule cundī svāhā</div>
             <div class="mantra-chinese">唵 折隸 主隸 準提 娑婆訶</div>
         </div>
@@ -335,9 +373,20 @@
     </div>
 
     <div class="section" style="border-left-color: #555;">
-        <div class="section-title" style="color: #555;">📊 準提修持功功德錄</div>
-        <ul class="history-list" id="historyList"></ul>
-        <button id="clearHistoryBtn" style="padding: 4px 10px; font-size: 11px; width: auto; background: #eee; color: #333;">清除歷史紀錄</button>
+        <div class="section-title" style="color: #555;">📅 準提每日修持精進日曆</div>
+        
+        <div class="calendar-header">
+            <button class="calendar-nav-btn" id="prevMonthBtn">◀</button>
+            <span id="calendarMonthLabel">2026 年 6 月</span>
+            <button class="calendar-nav-btn" id="nextMonthBtn">▶</button>
+        </div>
+        
+        <div class="calendar-grid" id="calendarGrid">
+            </div>
+        
+        <div style="text-align: right; margin-top: 15px;">
+            <button id="clearHistoryBtn" style="padding: 4px 10px; font-size: 11px; width: auto; background: #eee; color: #333;">清除歷史紀錄</button>
+        </div>
     </div>
 </div>
 
@@ -360,10 +409,14 @@
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const manualCountBtn = document.getElementById('manualCountBtn');
-    const historyList = document.getElementById('historyList');
     const clearHistoryBtn = document.getElementById('clearHistoryBtn');
     const nativeAudio = document.getElementById('nativeAudio');
     const milestoneTargetLabel = document.getElementById('milestoneTargetLabel');
+    
+    const calendarGrid = document.getElementById('calendarGrid');
+    const calendarMonthLabel = document.getElementById('calendarMonthLabel');
+    const prevMonthBtn = document.getElementById('prevMonthBtn');
+    const nextMonthBtn = document.getElementById('nextMonthBtn');
     
     const userNameInput = document.getElementById('userName');
     const targetObjectInput = document.getElementById('targetObject');
@@ -385,6 +438,9 @@
     let isInfinite = false;
     let toastTimer = null;
     
+    // 日曆導航狀態
+    let currentNavDate = new Date();
+
     const alertQuotes = [
         "請集中精神，收攝身心，專注於咒音，莫隨妄想分心流轉。",
         "此時不向身中覓，更待何時度此身？請收回散亂的心，專注當下。",
@@ -521,21 +577,20 @@
         playSyntheticBg(bgType, false);
     }
 
-    // 【核心邏輯更新】自動檢測並升級動態功德里程碑
     function renderTotalStats() {
         const total = parseInt(localStorage.getItem('zhunti_total_count') || '0');
         totalCountDisplay.textContent = total.toLocaleString();
         
-        let currentMilestoneTarget = 100000; // 預設 10萬
+        let currentMilestoneTarget = 100000; 
         let rewardText = "";
 
         if (total >= 100000 && total < 200000) {
-            currentMilestoneTarget = 200000; // 自動更新為 20萬
+            currentMilestoneTarget = 200000; 
             rewardText = "🎉 已圓滿達成 10 萬遍功德！";
-            milestoneTargetLabel.style.color = "#d9534f"; // 稍微變色凸顯成就
+            milestoneTargetLabel.style.color = "#d9534f"; 
             milestoneTargetLabel.textContent = `下一階段目標：20 萬遍`;
         } else if (total >= 200000) {
-            currentMilestoneTarget = 1000000; // 自動更新為 100萬
+            currentMilestoneTarget = 1000000; 
             rewardText = "🎉 已圓滿達成 20 萬遍！邁向百萬大圓滿！";
             milestoneTargetLabel.style.color = "#ff00ff";
             milestoneTargetLabel.textContent = `極致終點目標：100 萬遍`;
@@ -544,7 +599,6 @@
             milestoneTargetLabel.textContent = `目標里程碑：10 萬遍`;
         }
         
-        // 根據當前階段目標動態計算進度條
         let pct = (total / currentMilestoneTarget) * 100;
         if (pct > 100) pct = 100;
         
@@ -561,11 +615,10 @@
         const currentTotal = parseInt(localStorage.getItem('zhunti_total_count') || '0');
         const newTotal = currentTotal + amount;
         
-        // 如果剛好突破大關，彈窗恭喜
         if (currentTotal < 100000 && newTotal >= 100000) {
-            alert("✨ 功德無量！您已成功達成第一個「10萬遍」準提神咒修持里程碑！經云：滿十萬遍，得見諸佛菩薩，消宿世重障！下一階段20萬遍目標已自動解鎖，請繼續精進！");
+            alert("✨ 功德無量！您已成功達成第一個「10萬遍」準提神咒修持里程碑！下一階段20萬遍目標已自動解鎖，請繼續精進！");
         } else if (currentTotal < 200000 && newTotal >= 200000) {
-            alert("✨ 嘆未曾有！您已成功圓滿「20萬遍」準提神咒修持！經云：滿二十萬遍，夢見進入佛剎。終極「百萬遍」目標已自動開啟，願同證菩提！");
+            alert("✨ 嘆未曾有！您已成功圓滿「20萬遍」準提神咒修持！終極「百萬遍」目標已自動開啟，願同證菩提！");
         }
 
         localStorage.setItem('zhunti_total_count', newTotal);
@@ -578,6 +631,7 @@
         currentCountDisplay.textContent = count;
         addTotalCount(1);
         updateProgress();
+        saveLiveCountToToday(1); // 實時記錄進度到今天
 
         const alertTrigger = parseInt(alertIntervalSelect.value);
         if (alertTrigger > 0 && count % alertTrigger === 0) {
@@ -592,7 +646,7 @@
         document.getElementById('log-mirror').innerHTML = `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向這面準提鏡，願佛光常照，護衛家門，令內外清淨，災障消除，諸願圓成。`;
         document.getElementById('log-blessing').innerHTML = `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給 <span class="highlight">${targetObj}</span>，希望蒙佛加持、業障消除、福慧雙增、常遇善友、如意自在，諸願圓成。`;
         document.getElementById('log-academic').innerHTML = `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望智慧增長、思路靈敏、考試順利、金榜提名、心願達成。`;
-        document.getElementById('log-relationship').innerHTML = `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望我可以人天敬愛、得善諸緣、婚戀順利，所求自在。`;
+        document.getElementById('log-relationship').innerHTML = `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己',希望我可以人天敬愛、得善諸緣、婚戀順利，所求自在。`;
         document.getElementById('log-wealth').innerHTML = `信士 <span class="highlight">${name}</span> 願以此誦咒功德，迴向給自己，希望財源富足、福德增長、運程順遂，所求圓滿。`;
     }
 
@@ -679,6 +733,7 @@
         currentCountDisplay.textContent = count;
         addTotalCount(1);
         updateProgress();
+        saveLiveCountToToday(1); // 自動連播也實時同步到今天的日曆
 
         const alertTrigger = parseInt(alertIntervalSelect.value);
         if (alertTrigger > 0 && count % alertTrigger === 0) {
@@ -761,8 +816,23 @@
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
 
+    // 【新增與重構】日曆核心打卡儲存邏輯
+    function getTodayKey() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function saveLiveCountToToday(amount) {
+        const historyMap = JSON.parse(localStorage.getItem('zhunti_cal_history') || '{}');
+        const todayKey = getTodayKey();
+        historyMap[todayKey] = (historyMap[todayKey] || 0) + amount;
+        localStorage.setItem('zhunti_cal_history', JSON.stringify(historyMap));
+        renderCalendar();
+    }
+
     function saveHistory(finalCount, isCompleted) {
         if (finalCount === 0) return;
+        // 同步保留一份日誌型紀錄，確保舊系統相容
         const history = JSON.parse(localStorage.getItem('zhunti_rec_history') || '[]');
         const log = {
             date: new Date().toLocaleString('zh-HK'),
@@ -771,25 +841,90 @@
         };
         history.unshift(log);
         localStorage.setItem('zhunti_rec_history', JSON.stringify(history));
-        renderHistory();
+        
+        renderCalendar();
     }
 
-    function renderHistory() {
-        const history = JSON.parse(localStorage.getItem('zhunti_rec_history') || '[]');
-        historyList.innerHTML = history.map(item => `
-            <li>[${item.date}] 持誦 <b>${item.count}</b> 次 (${item.status})</li>
-        `).join('');
+    // 【全新功能】打卡日曆渲染引擎
+    function renderCalendar() {
+        calendarGrid.innerHTML = '';
+        
+        const year = currentNavDate.getFullYear();
+        const month = currentNavDate.getMonth();
+        
+        calendarMonthLabel.textContent = `${year} 年 ${month + 1} 月`;
+        
+        // 渲染星期標籤
+        const labels = ['日', '一', '二', '三', '四', '五', '六'];
+        labels.forEach(l => {
+            const div = document.createElement('div');
+            div.className = 'calendar-day-label';
+            div.textContent = l;
+            calendarGrid.appendChild(div);
+        });
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+        
+        // 渲染前置空白
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'calendar-cell empty';
+            calendarGrid.appendChild(emptyCell);
+        }
+        
+        // 讀取歷史日曆打卡數據
+        const historyMap = JSON.parse(localStorage.getItem('zhunti_cal_history') || '{}');
+        const todayStr = getTodayKey();
+        
+        // 渲染天數
+        for (let day = 1; day <= totalDays; day++) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-cell';
+            cell.textContent = day;
+            
+            const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const totalOnDay = historyMap[dateKey] || 0;
+            
+            if (totalOnDay > 0) {
+                cell.classList.add('has-practice');
+                
+                // 特殊提示框
+                const tooltip = document.createElement('span');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = `已精進持誦 ${totalOnDay} 遍`;
+                cell.appendChild(tooltip);
+                
+                // 如果是今天，加入閃爍激勵
+                if (dateKey === todayStr) {
+                    cell.classList.add('today-practiced');
+                }
+            }
+            
+            calendarGrid.appendChild(cell);
+        }
     }
+
+    prevMonthBtn.addEventListener('click', () => {
+        currentNavDate.setMonth(currentNavDate.getMonth() - 1);
+        renderCalendar();
+    });
+
+    nextMonthBtn.addEventListener('click', () => {
+        currentNavDate.setMonth(currentNavDate.getMonth() + 1);
+        renderCalendar();
+    });
 
     clearHistoryBtn.addEventListener('click', () => {
-        if(confirm('確定要清除本地持誦紀錄？（注意：終身累計總數量將保留）')) {
+        if(confirm('確定要清除所有每日持誦打卡紀錄？（注意：終身累計總數量將被安全保留）')) {
             localStorage.removeItem('zhunti_rec_history');
-            renderHistory();
+            localStorage.removeItem('zhunti_cal_history');
+            renderCalendar();
         }
     });
 
     updateAllDedications();
-    renderHistory();
+    renderCalendar();
     renderTotalStats();
     loadSavedAudio(); 
 </script>
