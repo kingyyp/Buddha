@@ -171,18 +171,21 @@
 
     <audio id="nativeAudio" playsinline style="display: none;"></audio>
 
-    <!-- ① 開咒偈 -->
+    <div class="section" style="background: #fff5f5; border-left-color: var(--accent-color);">
+        <div class="section-title" style="color: var(--accent-color);">🎙️ 準備工作：現場法音錄製</div>
+        <button id="recordBtn" class="btn-record">🔴 開始錄製一句準提咒</button>
+        <div id="recordStatus" class="status-tag" style="font-size:12px; text-align:center; color:#777; margin-top:5px;">尚未錄音</div>
+    </div>
+
     <div class="section">
         <div class="section-title">① 開咒偈</div>
         <div class="gatha-text">稽首皈依蘇悉帝，</div>
         <div class="gatha-text">頭面頂禮七俱胝，</div>
         <div class="gatha-text">我今稱讚大準提，</div>
         <div class="gatha-text">惟願慈悲垂加護。</div>
-        <!-- 新增開咒偈引磬按鈕 -->
         <button class="btn-gatha-chime" onclick="playChimeSound()">🔔 鳴磬一聲 (準備持誦)</button>
     </div>
 
-    <!-- ② 咒文內容 -->
     <div class="section">
         <div class="section-title">② 準提咒文</div>
         <div class="mantra-block">
@@ -197,14 +200,6 @@
         </div>
     </div>
 
-    <!-- 錄音區 -->
-    <div class="section" style="background: #fff5f5; border-left-color: var(--accent-color);">
-        <div class="section-title" style="color: var(--accent-color);">🎙️ 現場法音錄製</div>
-        <button id="recordBtn" class="btn-record">🔴 開始錄製一句準提咒</button>
-        <div id="recordStatus" class="status-tag" style="font-size:12px; text-align:center; color:#777; margin-top:5px;">尚未錄音</div>
-    </div>
-
-    <!-- 修持環境配置 -->
     <div class="section">
         <div class="section-title">⚙️ 精進修持配置</div>
         <div class="config-grid">
@@ -212,14 +207,13 @@
                 <label for="bgMusicSelect">🎵 背景音效環境 (切換可試聽)：</label>
                 <select id="bgMusicSelect">
                     <option value="none">無背景音樂</option>
-                    <option value="muyu">🎧 靜心沉穩木魚 (大音量版)</option>
+                    <option value="muyu" selected>🎧 靜心沉穩木魚 (大音量版)</option>
                     <option value="assembly">👥 萬人法會共修 (大殿雄厚共鳴)</option>
                 </select>
             </div>
             <div class="input-group">
                 <label for="speedSelect">⚡ 專注連播間隔：</label>
                 <select id="speedSelect">
-                    <!-- 預設改為最短的 0.1秒 -->
                     <option value="100" selected>0.1 秒 (極速緊湊) ✨</option>
                     <option value="500">0.5 秒 (流暢法速)</option>
                     <option value="1000">1.0 秒 (標準沉穩)</option>
@@ -261,10 +255,8 @@
         </div>
     </div>
 
-    <!-- 手動點擊隨緣持誦累積按鈕 -->
     <button class="btn-manual-count" id="manualCountBtn">✨ 手動點擊持誦 (清脆引磬計數+1)</button>
 
-    <!-- 計數與功德進度大面板 -->
     <div class="section" style="background: #fff; border-left-color: #ccad00;">
         <div class="section-title" style="color: #ccad00;">📊 本次持誦與終身功德累計</div>
         <div class="counter-grid">
@@ -285,7 +277,6 @@
         </div>
     </div>
 
-    <!-- 經典功德里程碑提示 -->
     <div class="section">
         <div class="section-title">📖 準提經典功德經證 (增長信心)</div>
         <div class="merit-guide">
@@ -295,13 +286,11 @@
         </div>
     </div>
 
-    <!-- 播放控制按鈕 -->
     <div class="btn-group">
         <button class="btn-start" id="startBtn" disabled>開始持誦</button>
         <button class="btn-stop" id="stopBtn" disabled>暫停/停止</button>
     </div>
 
-    <!-- ③ 迴向文 -->
     <div class="section">
         <div class="section-title">③ 功德迴向文</div>
         <div class="input-group">
@@ -345,7 +334,6 @@
         </div>
     </div>
 
-    <!-- 歷史日誌 -->
     <div class="section" style="border-left-color: #555;">
         <div class="section-title" style="color: #555;">📊 準提修持功功德錄</div>
         <ul class="history-list" id="historyList"></ul>
@@ -577,7 +565,6 @@
     userNameInput.addEventListener('input', updateAllDedications);
     targetObjectInput.addEventListener('input', updateAllDedications);
 
-    // 核心邏輯：讀取永久保存的錄音
     function loadSavedAudio() {
         const savedAudioBase64 = localStorage.getItem('zhunti_saved_audio');
         if (savedAudioBase64) {
@@ -605,7 +592,6 @@
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: options.mimeType });
                     
-                    // 將音訊 Blob 轉成 Base64 字串存入 LocalStorage 達到永久保存的目的
                     const reader = new FileReader();
                     reader.readAsDataURL(audioBlob);
                     reader.onloadend = function() {
@@ -616,7 +602,6 @@
                             nativeAudio.load();
                             recordStatus.textContent = "✅ 準提法音錄製成功，並已永久儲存！";
                         } catch(e) {
-                            // 若音訊太長超出 LocalStorage 限制（一般不超過5秒不會超限）
                             if (audioUrl) URL.revokeObjectURL(audioUrl);
                             audioUrl = URL.createObjectURL(audioBlob);
                             nativeAudio.src = audioUrl;
@@ -772,7 +757,7 @@
     updateAllDedications();
     renderHistory();
     renderTotalStats();
-    loadSavedAudio(); // 初始化時加載已儲存的音訊
+    loadSavedAudio(); 
 </script>
 
 </body>
