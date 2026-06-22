@@ -47,6 +47,7 @@
             background: var(--primary-light);
             border-radius: 10px;
             border-left: 4px solid var(--primary-color);
+            position: relative;
         }
         .section-title {
             font-weight: bold;
@@ -123,32 +124,22 @@
         }
         .btn-manual-count:active { transform: scale(0.98); }
 
+        .btn-gatha-chime {
+            display: block; width: 60%; margin: 10px auto 5px auto; padding: 6px; font-size: 14px;
+            background-color: #dfba6b; color: #3d2514; border-radius: 5px; text-align: center; font-weight: bold;
+        }
+        .btn-gatha-chime:active { transform: scale(0.98); }
+
         button:disabled { background-color: #ccc !important; cursor: not-allowed; color: #888; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-        /* 【全新改進】自動淡入淡出的頂部通知橫幅樣式 */
         .toast-alert {
-            position: fixed;
-            top: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 400px;
-            background: #fff7e6;
-            border: 3px solid var(--primary-color);
-            border-radius: 12px;
-            padding: 15px 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            z-index: 9999;
-            text-align: center;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: none; /* 避免擋住使用者點擊網頁其他地方 */
-            opacity: 0;
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px;
+            background: #fff7e6; border: 3px solid var(--primary-color); border-radius: 12px; padding: 15px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 9999; text-align: center;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; opacity: 0;
         }
-        .toast-alert.show {
-            top: 20px;
-            opacity: 1;
-        }
+        .toast-alert.show { top: 20px; opacity: 1; }
         .toast-alert h3 { margin: 0 0 5px 0; color: var(--accent-color); font-size: 16px; }
         .toast-alert p { margin: 0; font-size: 14px; color: var(--text-color); font-weight: 500; }
 
@@ -187,6 +178,8 @@
         <div class="gatha-text">頭面頂禮七俱胝，</div>
         <div class="gatha-text">我今稱讚大準提，</div>
         <div class="gatha-text">惟願慈悲垂加護。</div>
+        <!-- 新增開咒偈引磬按鈕 -->
+        <button class="btn-gatha-chime" onclick="playChimeSound()">🔔 鳴磬一聲 (準備持誦)</button>
     </div>
 
     <!-- ② 咒文內容 -->
@@ -226,9 +219,10 @@
             <div class="input-group">
                 <label for="speedSelect">⚡ 專注連播間隔：</label>
                 <select id="speedSelect">
-                    <option value="100">0.1 秒 (極速緊湊)</option>
+                    <!-- 預設改為最短的 0.1秒 -->
+                    <option value="100" selected>0.1 秒 (極速緊湊) ✨</option>
                     <option value="500">0.5 秒 (流暢法速)</option>
-                    <option value="1000" selected>1.0 秒 (標準沉穩)</option>
+                    <option value="1000">1.0 秒 (標準沉穩)</option>
                     <option value="2000">2.0 秒 (從容安詳)</option>
                     <option value="3000">3.0 秒 (初學攝心)</option>
                 </select>
@@ -239,7 +233,7 @@
                 <label for="alertInterval">⏱️ 防分心警策提醒間隔：</label>
                 <select id="alertInterval">
                     <option value="0">不開啟提醒</option>
-                    <option value="3">每隔 3 遍 (測試專用) ✨</option>
+                    <option value="3">每隔 3 遍 (測試專用)</option>
                     <option value="7">每隔 7 遍</option>
                     <option value="9">每隔 9 遍</option>
                     <option value="21">每隔 21 遍提醒</option>
@@ -359,7 +353,6 @@
     </div>
 </div>
 
-<!-- 【全新改進】改為自動彈出與自動隱藏的橫幅，不擋住、不中斷唸咒 -->
 <div class="toast-alert" id="toastAlert">
     <h3>✨ 正念警策提醒</h3>
     <p id="alertMessage">請集中精神，收攝身心...</p>
@@ -548,7 +541,7 @@
         if (pct > 100) pct = 100;
         
         progressBar.style.width = `${pct}%`;
-        progressBarText.textContent = `終身功功德總進度: ${pct.toFixed(2)}% (目標 10 萬遍)`;
+        progressBarText.textContent = `終身功德總進度: ${pct.toFixed(2)}% (目標 10 萬遍)`;
     }
 
     function addTotalCount(amount) {
@@ -566,7 +559,7 @@
 
         const alertTrigger = parseInt(alertIntervalSelect.value);
         if (alertTrigger > 0 && count % alertTrigger === 0) {
-            triggerToastPopup(); // 手動點擊也會觸發無感提醒
+            triggerToastPopup();
         }
     });
 
@@ -584,6 +577,17 @@
     userNameInput.addEventListener('input', updateAllDedications);
     targetObjectInput.addEventListener('input', updateAllDedications);
 
+    // 核心邏輯：讀取永久保存的錄音
+    function loadSavedAudio() {
+        const savedAudioBase64 = localStorage.getItem('zhunti_saved_audio');
+        if (savedAudioBase64) {
+            nativeAudio.src = savedAudioBase64;
+            nativeAudio.load();
+            recordStatus.textContent = "✨ 已自動載入上次的準提法音！隨時可以開始";
+            startBtn.disabled = false;
+        }
+    }
+
     recordBtn.addEventListener('click', async () => {
         initAudioContext();
         if (!isRecording) {
@@ -600,14 +604,28 @@
 
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: options.mimeType });
-                    if (audioUrl) URL.revokeObjectURL(audioUrl);
                     
-                    audioUrl = URL.createObjectURL(audioBlob);
-                    nativeAudio.src = audioUrl;
-                    nativeAudio.load();
+                    // 將音訊 Blob 轉成 Base64 字串存入 LocalStorage 達到永久保存的目的
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = function() {
+                        const base64data = reader.result;
+                        try {
+                            localStorage.setItem('zhunti_saved_audio', base64data);
+                            nativeAudio.src = base64data;
+                            nativeAudio.load();
+                            recordStatus.textContent = "✅ 準提法音錄製成功，並已永久儲存！";
+                        } catch(e) {
+                            // 若音訊太長超出 LocalStorage 限制（一般不超過5秒不會超限）
+                            if (audioUrl) URL.revokeObjectURL(audioUrl);
+                            audioUrl = URL.createObjectURL(audioBlob);
+                            nativeAudio.src = audioUrl;
+                            nativeAudio.load();
+                            recordStatus.textContent = "✅ 錄製成功（因檔案過大僅限本次使用，建議錄製控制在3秒內以自動儲存）";
+                        }
+                        startBtn.disabled = false;
+                    }
                     
-                    recordStatus.textContent = "✅ 準提法音錄製成功！已就緒";
-                    startBtn.disabled = false;
                     stream.getTracks().forEach(track => track.stop());
                 };
 
@@ -635,7 +653,6 @@
         });
     });
 
-    // 播完後自動計數與連播
     nativeAudio.addEventListener('ended', () => {
         if (!isPlaying) return;
 
@@ -644,10 +661,9 @@
         addTotalCount(1);
         updateProgress();
 
-        // 檢查是否達到防分心條件
         const alertTrigger = parseInt(alertIntervalSelect.value);
         if (alertTrigger > 0 && count % alertTrigger === 0) {
-            triggerToastPopup(); // 呼叫全新橫幅，不中斷、不暫停音訊
+            triggerToastPopup(); 
         }
 
         if (!isInfinite && count >= target) {
@@ -673,25 +689,17 @@
         }
     }
 
-    // 【全新重構】自動淡入淡出的無感提醒機制
     function triggerToastPopup() {
-        // 隨機抽選一句警策語
         alertMessage.textContent = alertQuotes[Math.floor(Math.random() * alertQuotes.length)];
-        
-        // 顯示通知橫幅
         toastAlert.classList.add('show');
-        
-        // 清除上一次的計時器（防重疊）
         if (toastTimer) clearTimeout(toastTimer);
-        
-        // 5 秒鐘之後自動隱藏，完全不干擾、不需要任何鼠標點擊
         toastTimer = setTimeout(() => {
             toastAlert.classList.remove('show');
         }, 5000);
     }
 
     startBtn.addEventListener('click', () => {
-        if (!audioUrl) return;
+        if (!nativeAudio.src) return;
         initAudioContext();
 
         isPlaying = true;
@@ -764,6 +772,7 @@
     updateAllDedications();
     renderHistory();
     renderTotalStats();
+    loadSavedAudio(); // 初始化時加載已儲存的音訊
 </script>
 
 </body>
