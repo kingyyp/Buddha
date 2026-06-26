@@ -213,10 +213,15 @@
         <div class="section-title" style="color: var(--accent-color);">🎙️ 準備工作：現場法音錄製</div>
         <button id="recordBtn" class="btn-record">🔴 開始錄製一句準提咒</button>
         <div id="recordStatus" class="status-tag" style="font-size:12px; text-align:center; color:#777; margin-top:5px;">尚未錄音</div>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button id="testRecordedAudioBtn" style="flex: 1; padding: 10px; background-color: #0066cc; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">🎧 試聽已錄法音</button>
+            <button id="testSoundBtn" style="flex: 1; padding: 10px; background-color: #666; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">🔊 測試引磬聲</button>
+        </div>
     </div>
 
     <div class="section">
         <div class="section-title">① 開咒偈</div>
+        <button class="btn-gatha-chime" onclick="playChimeSound()">🔔 鳴磬一聲 (開始前)</button>
         <div class="gatha-text">稽首皈依蘇悉帝，</div>
         <div class="gatha-text">頭面頂禮七俱胝，</div>
         <div class="gatha-text">我今稱讚大準提，</div>
@@ -388,6 +393,16 @@
             <button id="clearHistoryBtn" style="padding: 4px 10px; font-size: 11px; width: auto; background: #eee; color: #333;">清除歷史紀錄</button>
         </div>
     </div>
+
+    <div class="section" style="background: #f0f8ff; border-left-color: #0066cc;">
+        <div class="section-title" style="color: #0066cc;">📥 導入已念誦次數 (換設備用)</div>
+        <div style="margin-bottom: 12px;">
+            <label for="importCountInput" style="display: block; margin-bottom: 6px; font-weight: bold; font-size: 13px; color: #555;">輸入已經念誦的總次數：</label>
+            <input type="number" id="importCountInput" placeholder="例如：50000" style="width: 100%; padding: 10px; border: 1px solid #0066cc; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+        </div>
+        <button id="importCountBtn" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #0066cc, #0052a3); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">✅ 確認導入次數</button>
+        <div id="importStatus" style="font-size: 12px; text-align: center; color: #0066cc; margin-top: 8px;"></div>
+    </div>
 </div>
 
 <div class="toast-alert" id="toastAlert">
@@ -398,6 +413,7 @@
 <script>
     const recordBtn = document.getElementById('recordBtn');
     const recordStatus = document.getElementById('recordStatus');
+    const testRecordedAudioBtn = document.getElementById('testRecordedAudioBtn');
     const modeRadios = document.getElementsByName('mode');
     const targetCountDiv = document.getElementById('targetCountDiv');
     const targetCountSelect = document.getElementById('targetCount');
@@ -426,6 +442,10 @@
     const alertIntervalSelect = document.getElementById('alertInterval');
     const toastAlert = document.getElementById('toastAlert');
     const alertMessage = document.getElementById('alertMessage');
+    const testSoundBtn = document.getElementById('testSoundBtn');
+    const importCountInput = document.getElementById('importCountInput');
+    const importCountBtn = document.getElementById('importCountBtn');
+    const importStatus = document.getElementById('importStatus');
 
     let mediaRecorder = null;
     let audioChunks = [];
@@ -571,43 +591,106 @@
         }
     });
 
+    testSoundBtn.addEventListener('click', () => {
+        initAudioContext();
+        playChimeSound();
+    });
+
+    testRecordedAudioBtn.addEventListener('click', () => {
+        if (!nativeAudio.src) {
+            alert('尚未錄製或載入法音，請先錄製一句準提咒');
+            return;
+        }
+        nativeAudio.currentTime = 0;
+        nativeAudio.play().catch(err => {
+            alert('播放失敗，請重新錄製法音');
+        });
+    });
+
+    importCountBtn.addEventListener('click', () => {
+        const inputValue = parseInt(importCountInput.value);
+        if (isNaN(inputValue) || inputValue < 0) {
+            importStatus.textContent = "❌ 請輸入有效的正整數";
+            importStatus.style.color = "#d9534f";
+            return;
+        }
+        
+        const currentTotal = parseInt(localStorage.getItem('zhunti_total_count') || '0');
+        const newTotal = currentTotal + inputValue;
+        
+        localStorage.setItem('zhunti_total_count', newTotal);
+        importCountInput.value = '';
+        importStatus.textContent = `✅ 成功增加 ${inputValue.toLocaleString()} 次！總計現在為 ${newTotal.toLocaleString()} 次`;
+        importStatus.style.color = "#28a745";
+        
+        renderTotalStats();
+        
+        // 3秒後清除提示
+        setTimeout(() => {
+            importStatus.textContent = '';
+        }, 3000);
+    });
+
+    importCountInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            importCountBtn.click();
+        }
+    });
+
     function triggerBgSound() {
         const bgType = bgMusicSelect.value;
         if (bgType === 'none' || !isPlaying) return;
         playSyntheticBg(bgType, false);
     }
 
+    function getMilestoneInfo(total) {
+        const milestones = [
+            { threshold: 0, target: 100000, label: "10 萬遍", color: "#b28500", reward: "" },
+            { threshold: 100000, target: 200000, label: "20 萬遍", color: "#d9534f", reward: "🎉 已圓滿達成 10 萬遍功德！" },
+            { threshold: 200000, target: 300000, label: "30 萬遍", color: "#ff00ff", reward: "🎉 已圓滿達成 20 萬遍！" }
+        ];
+        
+        // 對於 300000 以上，動態計算目標
+        if (total >= 300000) {
+            const baseTarget = 300000;
+            const increment = 500000; // 每 50 万一個里程碑
+            const nextMultiple = Math.ceil(total / increment) * increment;
+            const currentMilestone = Math.floor(total / increment) * increment;
+            return {
+                threshold: currentMilestone,
+                target: nextMultiple,
+                label: `${(nextMultiple / 10000).toFixed(0)} 萬遍`,
+                color: "#ff6600",
+                reward: `🎉 已圓滿達成 ${(currentMilestone / 10000).toFixed(0)} 萬遍！邁向 ${(nextMultiple / 10000).toFixed(0)} 萬遍大圓滿！`
+            };
+        }
+        
+        // 尋找符合條件的里程碑
+        for (let i = milestones.length - 1; i >= 0; i--) {
+            if (total >= milestones[i].threshold) {
+                return milestones[i];
+            }
+        }
+        return milestones[0];
+    }
+
     function renderTotalStats() {
         const total = parseInt(localStorage.getItem('zhunti_total_count') || '0');
         totalCountDisplay.textContent = total.toLocaleString();
         
-        let currentMilestoneTarget = 100000; 
-        let rewardText = "";
-
-        if (total >= 100000 && total < 200000) {
-            currentMilestoneTarget = 200000; 
-            rewardText = "🎉 已圓滿達成 10 萬遍功德！";
-            milestoneTargetLabel.style.color = "#d9534f"; 
-            milestoneTargetLabel.textContent = `下一階段目標：20 萬遍`;
-        } else if (total >= 200000) {
-            currentMilestoneTarget = 1000000; 
-            rewardText = "🎉 已圓滿達成 20 萬遍！邁向百萬大圓滿！";
-            milestoneTargetLabel.style.color = "#ff00ff";
-            milestoneTargetLabel.textContent = `極致終點目標：100 萬遍`;
-        } else {
-            milestoneTargetLabel.style.color = "#b28500";
-            milestoneTargetLabel.textContent = `目標里程碑：10 萬遍`;
-        }
+        const milestone = getMilestoneInfo(total);
+        milestoneTargetLabel.style.color = milestone.color;
+        milestoneTargetLabel.textContent = `目標里程碑：${milestone.label}`;
         
-        let pct = (total / currentMilestoneTarget) * 100;
+        let pct = (total / milestone.target) * 100;
         if (pct > 100) pct = 100;
         
         progressBar.style.width = `${pct}%`;
         
-        if (rewardText !== "") {
-            progressBarText.textContent = `${rewardText} | 本階進度: ${pct.toFixed(2)}%`;
+        if (milestone.reward !== "") {
+            progressBarText.textContent = `${milestone.reward} | 本階進度: ${pct.toFixed(2)}%`;
         } else {
-            progressBarText.textContent = `終身功德總進度: ${pct.toFixed(2)}% (距${currentMilestoneTarget.toLocaleString()}遍)`;
+            progressBarText.textContent = `終身功德總進度: ${pct.toFixed(2)}% (距${milestone.target.toLocaleString()}遍)`;
         }
     }
 
